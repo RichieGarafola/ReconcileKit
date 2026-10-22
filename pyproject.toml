@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reconcilekit"
+version = "0.1.0"
+description = "Explainable invoice-to-payment reconciliation with exact cents, quarantined validation, and append-only review history."
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+dependencies = [
+    # Lower bounds are the versions actually tested (see requirements-lock.txt).
+    "numpy>=2.4,<3",
+    "pandas>=3.0,<4",
+    "pandera>=0.34,<1",
+    "duckdb>=2.0,<3",
+    "streamlit>=1.66,<2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "ruff>=0.6",
+]
+
+[project.urls]
+Homepage = "https://github.com/RichieGarafola/ReconcileKit"
+Issues = "https://github.com/RichieGarafola/ReconcileKit/issues"
+
+[project.scripts]
+reconcilekit = "reconcilekit.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"reconcilekit.demo_data" = ["*.csv"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]

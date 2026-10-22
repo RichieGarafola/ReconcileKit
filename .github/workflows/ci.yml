@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.11", "3.12", "3.13"]
+        include:
+          - os: windows-latest
+            python-version: "3.11"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -c requirements-lock.txt -e ".[dev]"
+      - name: Lint
+        run: |
+          ruff check .
+          ruff format --check .
+      - name: Test
+        run: pytest
+      - name: Demo smoke run (exit code 2 = incomplete by design)
+        shell: bash
+        run: |
+          set +e
+          reconcilekit demo --db "$RUNNER_TEMP/demo.duckdb" --export-dir "$RUNNER_TEMP/out" --json
+          code=$?
+          set -e
+          test "$code" -eq 2
+          ls "$RUNNER_TEMP/out"/reconcilekit_RUN-*.zip
+      - name: Wheel smoke test (installed package, run outside the checkout)
+        shell: bash
+        run: |
+          python -m pip wheel --no-deps . -w "$RUNNER_TEMP/dist"
+          python -m venv "$RUNNER_TEMP/wheelenv"
+          PY="$RUNNER_TEMP/wheelenv/bin/python"
+          [ -f "$PY" ] || PY="$RUNNER_TEMP/wheelenv/Scripts/python.exe"
+          "$PY" -m pip install -c requirements-lock.txt "$RUNNER_TEMP"/dist/*.whl
+          cd "$RUNNER_TEMP"
+          set +e
+          "$PY" -m reconcilekit.cli demo --db wheel.duckdb --export-dir wheel-out --json
+          code=$?
+          set -e
+          test "$code" -eq 2
+          ls wheel-out/reconcilekit_RUN-*.zip

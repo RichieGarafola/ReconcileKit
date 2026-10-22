@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ReconcileKit local state: databases, uploads, and generated exports
+data/
+exports/
+*.duckdb
+*.duckdb.wal
+reconcilekit_*.zip
+uploads/
+
+# Local working notes (never published)
+RECONCILEKIT_HANDOFF.md
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

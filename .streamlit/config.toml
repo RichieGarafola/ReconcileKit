@@ -1,0 +1,12 @@
+[server]
+# Matches reconcilekit.ingestion.MAX_FILE_BYTES (5 MB); the engine enforces it too.
+maxUploadSize = 5
+
+[browser]
+gatherUsageStats = false
+
+[client]
+toolbarMode = "minimal"
+showErrorDetails = "none"
+
+# No [theme] section: Streamlit follows the viewer's light/dark preference.
