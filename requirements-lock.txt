@@ -11,6 +11,7 @@ click==8.5.0
 colorama==0.4.6
 duckdb==2.0.0
 h11==0.16.0
+hypothesis==6.170.14
 idna==3.20
 iniconfig==2.3.1
 itsdangerous==2.2.0
@@ -40,6 +41,7 @@ requests==2.34.2
 rpds-py==2026.9.1
 ruff==0.17.1
 six==1.17.0
+sortedcontainers==2.4.0
 starlette==1.9.0
 streamlit==1.66.1
 typeguard==4.6.0
