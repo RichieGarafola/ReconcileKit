@@ -59,3 +59,10 @@ jobs:
           set -e
           test "$code" -eq 2
           ls wheel-out/reconcilekit_RUN-*.zip
+          # The rk_v1 SQL file must ship in the wheel and the views must answer.
+          out=$("$PY" -m reconcilekit.cli query --db wheel.duckdb \
+            --sql "SELECT arithmetic_status, settled_invoice_pct FROM rk_v1.run_summary")
+          echo "$out"
+          echo "$out" | grep -q "PASS,79.23"
+          "$PY" -m reconcilekit.cli parquet --db wheel.duckdb --run-id RUN-2e17cda32757cc29 --out-dir wheel-pq
+          ls wheel-pq/run_summary.parquet wheel-pq/open_invoices.parquet
