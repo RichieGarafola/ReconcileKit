@@ -12,6 +12,7 @@ confirm them against each project's current distribution before redistributing.
 | duckdb | Embedded database and SQL reporting | MIT |
 | streamlit | Web interface | Apache-2.0 |
 | pytest (dev) | Tests | MIT |
+| hypothesis (dev) | Property-based tests | MPL-2.0 |
 | ruff (dev) | Linting and formatting | MIT |
 
 Exact tested versions are listed in `requirements-lock.txt`.

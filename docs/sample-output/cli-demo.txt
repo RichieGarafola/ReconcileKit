@@ -1,0 +1,17 @@
+Run RUN-2e17cda32757cc29 (new)
+As-of date: 2026-03-31
+Data completeness: INCOMPLETE - 8 invoice and 4 payment rows quarantined. Totals cover eligible records only.
+    Eligible invoices                     $7,585.75
+  - Eligible payments                     $8,920.75
+  = Net difference                       -$1,335.00
+  + Outstanding invoice balances          $1,575.50
+  - Overpayments                             $50.00
+  - Unmatched payments                    $1,660.50
+  - Ambiguous payments                    $1,000.00
+  - Blocked payments                        $200.00
+  = Explained difference                 -$1,335.00
+  Invariant I - A = O - X: PASS
+  Invariant P = A + U + M + B: PASS
+  Invariant I - P = O - X - U - M - B: PASS
+Exceptions requiring review: 19 {'OPEN': 19}
+Export written: exports/reconcilekit_RUN-2e17cda32757cc29.zip

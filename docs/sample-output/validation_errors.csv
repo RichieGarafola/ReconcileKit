@@ -1,0 +1,13 @@
+kind,source_row,record_id,rule_code,field,raw_value,message
+invoices,10,INV-R00010,DUPLICATE_INVOICE_IDENTITY,invoice_id,INV-1009,"Identity 'CUST-E / INV-1009' is shared by invoices rows 10, 11 (identical); all rows quarantined."
+invoices,11,INV-R00011,DUPLICATE_INVOICE_IDENTITY,invoice_id,INV-1009,"Identity 'CUST-E / INV-1009' is shared by invoices rows 10, 11 (identical); all rows quarantined."
+invoices,12,INV-R00012,DUPLICATE_INVOICE_IDENTITY,invoice_id,INV-1010,"Identity 'CUST-E / INV-1010' is shared by invoices rows 12, 13 (conflicting on invoice_amount); all rows quarantined."
+invoices,13,INV-R00013,DUPLICATE_INVOICE_IDENTITY,invoice_id,INV-1010,"Identity 'CUST-E / INV-1010' is shared by invoices rows 12, 13 (conflicting on invoice_amount); all rows quarantined."
+invoices,14,INV-R00014,MISSING_REQUIRED_VALUE,invoice_amount,,Required value 'invoice_amount' is blank.
+invoices,15,INV-R00015,INVALID_AMOUNT,invoice_amount,99.999,Invalid 'invoice_amount': '99.999' has more than two decimal places; amounts are not rounded automatically.
+invoices,16,INV-R00016,UNSUPPORTED_CURRENCY,currency,EUR,Currency 'EUR' is not supported; v1 reconciles USD only.
+invoices,17,INV-R00017,TRANSACTION_AFTER_AS_OF,invoice_date,2026-04-02,invoice_date 2026-04-02 is after the as-of date 2026-03-31; inputs are treated as a snapshot at the as-of date.
+payments,15,PAY-R00015,DUPLICATE_PAYMENT_ID,payment_id,PAY-5014,"Identity 'PAY-5014' is shared by payments rows 15, 16 (conflicting on payment_amount); all rows quarantined."
+payments,16,PAY-R00016,DUPLICATE_PAYMENT_ID,payment_id,PAY-5014,"Identity 'PAY-5014' is shared by payments rows 15, 16 (conflicting on payment_amount); all rows quarantined."
+payments,17,PAY-R00017,TRANSACTION_AFTER_AS_OF,payment_date,2026-04-05,payment_date 2026-04-05 is after the as-of date 2026-03-31; inputs are treated as a snapshot at the as-of date.
+payments,18,PAY-R00018,INVALID_AMOUNT,payment_amount,1.2e3,Invalid 'payment_amount': '1.2e3' uses exponent notation; write the plain decimal amount.
