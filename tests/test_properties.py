@@ -3,15 +3,20 @@
 The engine already asserts its own bridge invariants via ``check_invariants``. These
 tests deliberately do NOT rely on that function: every expected total is recomputed
 from the generated input rows with ``Decimal`` and a deliberately simple model of the
-documented matching contract (exact ``customer_id + invoice_id`` only; duplicate
-identities quarantined). A disagreement between the model and the engine fails here
-even if the engine's internal checks are self-consistent.
+documented matching contract (exact ``customer_id + invoice_id`` after trimming only;
+duplicate identities quarantined, including when a sibling row is invalid; a reference to a
+lone quarantined invoice is BLOCKED). A disagreement between the model and the engine fails
+here even if the engine's internal checks are self-consistent.
+
+Example counts come from a Hypothesis profile: ``ci`` (200 examples, used when the ``CI``
+environment variable is set, as on GitHub Actions) or ``dev`` (50 examples, the local
+default). Override with ``HYPOTHESIS_PROFILE=ci pytest``.
 """
 
 from __future__ import annotations
 
+import os
 import random
-import re
 from collections import Counter
 from dataclasses import asdict
 from datetime import timedelta
@@ -31,11 +36,17 @@ from reconcilekit.money import (
     parse_amount_cents,
 )
 
-PROFILE = settings(
-    max_examples=200,
-    deadline=None,  # pandas/pandera start-up makes per-example timing noisy on CI
-    suppress_health_check=[HealthCheck.too_slow],
+_COMMON = {
+    "deadline": None,  # pandas/pandera start-up makes per-example timing noisy on CI
+    "suppress_health_check": [HealthCheck.too_slow],
+}
+settings.register_profile("ci", max_examples=200, **_COMMON)
+settings.register_profile("dev", max_examples=50, **_COMMON)
+settings.load_profile(
+    os.environ.get("HYPOTHESIS_PROFILE") or ("ci" if os.environ.get("CI") else "dev")
 )
+
+PROFILE = settings()  # inherits the loaded profile; kept as a single place to tune all tests
 
 # --------------------------------------------------------------------------- money
 
@@ -104,14 +115,17 @@ def test_amount_above_maximum_is_rejected():
 CUSTOMERS = ["C1", "C2", "C3"]
 INVOICE_IDS = ["INV-1", "INV-2", "INV-3", "INV-4"]
 small_amount = st.integers(min_value=1, max_value=500_000).map(format_cents)
+INVALID_AMOUNTS = ["", "1.234", "-5.00", "0.00"]
 
 
 @st.composite
 def ledgers(draw):
-    """Valid-format invoice and payment rows with deliberate collisions.
+    """Invoice and payment rows with deliberate collisions.
 
     Small identifier pools force duplicate invoice identities, cross-customer
-    references, unknown references, blank references, and duplicate payment ids.
+    references, unknown references, blank references, and duplicate payment ids. Some
+    invoice amounts are invalid (so the row is quarantined), and some payment references
+    carry surrounding whitespace (trimmed before matching). Payment rows are always valid.
     """
     invoices = []
     for _ in range(draw(st.integers(min_value=0, max_value=8))):
@@ -123,7 +137,9 @@ def ledgers(draw):
                 customer_id=draw(st.sampled_from(CUSTOMERS)),
                 invoice_date=inv_date.isoformat(),
                 due_date=due.isoformat(),
-                amount=draw(small_amount),
+                amount=draw(
+                    st.one_of(small_amount, small_amount, st.sampled_from(INVALID_AMOUNTS))
+                ),
             )
         )
     payments = []
@@ -132,7 +148,9 @@ def ledgers(draw):
         payments.append(
             pay(
                 payment_id=draw(st.sampled_from([f"P-{n}" for n in range(1, 9)])),
-                invoice_id=draw(st.sampled_from([*INVOICE_IDS, "INV-404", "inv-1", ""])),
+                invoice_id=draw(st.sampled_from(["", " "]))
+                + draw(st.sampled_from([*INVOICE_IDS, "INV-404", "inv-1", ""]))
+                + draw(st.sampled_from(["", " "])),
                 customer_id=draw(st.sampled_from(CUSTOMERS)),
                 payment_date=pay_date.isoformat(),
                 amount=draw(small_amount),
@@ -145,11 +163,19 @@ def to_cents(text: str) -> int:
     return int(Decimal(text) * 100)
 
 
+def valid_amount(text: str) -> bool:
+    return text not in INVALID_AMOUNTS
+
+
 def model(invoices, payments):
-    """Independent expectation for valid-format rows (see module docstring)."""
+    """Independent expectation for generated rows (see module docstring)."""
+    # Duplicate identities are counted over ALL rows, valid or not (documented rule).
     inv_identity = Counter((r[1], r[0]) for r in invoices)  # (customer_id, invoice_id)
+    invalid_keys = {(r[1], r[0]) for r in invoices if not valid_amount(r[5])}
     eligible_inv = {
-        (r[1], r[0]): to_cents(r[5]) for r in invoices if inv_identity[(r[1], r[0])] == 1
+        (r[1], r[0]): to_cents(r[5])
+        for r in invoices
+        if inv_identity[(r[1], r[0])] == 1 and valid_amount(r[5])
     }
     pay_identity = Counter(r[0] for r in payments)
     eligible_pay = [r for r in payments if pay_identity[r[0]] == 1]
@@ -157,12 +183,14 @@ def model(invoices, payments):
     status = {}
     applied = Counter()
     for r in eligible_pay:
-        pid, inv_id, cust, amount = r[0], r[1], r[2], to_cents(r[5])
+        pid, inv_id, cust, amount = r[0], r[1].strip(), r[2], to_cents(r[5])
         key = (cust, inv_id)
         if inv_id == "":
             status[pid] = PaymentStatus.UNMATCHED
         elif inv_identity[key] > 1:
             status[pid] = PaymentStatus.AMBIGUOUS
+        elif key in invalid_keys:
+            status[pid] = PaymentStatus.BLOCKED
         elif key in eligible_inv:
             status[pid] = PaymentStatus.APPLIED
             applied[key] += amount
@@ -196,7 +224,8 @@ def test_engine_agrees_with_independent_model(data):
     assert s.applied_payment_cents == totals["A"]
     assert s.unmatched_payment_cents == by_status[PaymentStatus.UNMATCHED]
     assert s.ambiguous_payment_cents == by_status[PaymentStatus.AMBIGUOUS]
-    assert s.blocked_payment_cents == 0  # valid-format input never quarantines a lone invoice
+    assert s.blocked_payment_cents == by_status[PaymentStatus.BLOCKED]
+    assert s.quarantined_invoice_rows == len(invoices) - len(eligible_inv)
 
     assert {p.payment_id: p.status for p in run.payment_results} == status
     assert {invoice_key(i) for i in run.invoice_results} == set(eligible_inv)
@@ -295,4 +324,9 @@ def test_invalid_amount_rows_are_quarantined_not_coerced(data, draw):
     assert all(i.invoice_id != "INV-BAD" for i in run.invoice_results)
     assert run.summary.quarantined_invoice_rows == clean.summary.quarantined_invoice_rows + 1
     assert run.summary.eligible_invoice_cents == clean.summary.eligible_invoice_cents
-    assert any(re.search("invoice_amount", i.field or "") for i in run.validation_issues)
+    bad_row = len(invoices) + 2  # header is row 1
+    assert any(
+        i.source_row == bad_row and i.field == "invoice_amount"
+        for i in run.validation_issues
+        if i.kind == "invoices"
+    )

@@ -229,11 +229,14 @@ python scripts/generate_sample_outputs.py --check
   a CLI end-to-end run from files to database to ZIP, and the Streamlit UI driven headlessly
   with `AppTest`.
 - **Property-based tests** ([`tests/test_properties.py`](tests/test_properties.py), Hypothesis)
-  generate random ledgers with deliberate collisions and compare the engine against an
+  generate random ledgers with deliberate collisions (duplicate and invalid invoice rows,
+  padded, blank, unknown, and cross-customer references) and compare the engine against an
   independent model of the matching contract. They check cents round-trips and rejection of
-  rounding and presentation formats, agreement of every total and status with totals
-  recomputed from the input via `Decimal`, exact-identity-only matching, row-order
-  independence, determinism, and quarantine (never coercion) of invalid amounts.
+  rounding and presentation formats, agreement of every total and status (including
+  AMBIGUOUS and BLOCKED) with totals recomputed from the input via `Decimal`,
+  exact-identity-only matching, row-order independence, determinism, and quarantine (never
+  coercion) of invalid amounts. CI runs 200 examples per test; local runs default to 50
+  (`HYPOTHESIS_PROFILE=ci pytest` for the full count).
 - **CI** ([`ci.yml`](.github/workflows/ci.yml)) runs lint, format, tests, a demo smoke run,
   and a wheel install smoke test on Ubuntu (Python 3.11, 3.12, 3.13) and Windows (3.11).
 - **Dependency audit** ([`audit.yml`](.github/workflows/audit.yml)) runs `pip-audit` against

@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import importlib.util
+import re
 from pathlib import Path
 
-SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "generate_sample_outputs.py"
+ROOT = Path(__file__).resolve().parents[1]
+SCRIPT = ROOT / "scripts" / "generate_sample_outputs.py"
 
 
 def _load_script():
@@ -28,6 +30,14 @@ def test_sample_outputs_contain_no_machine_paths():
     for name in gen.build():
         text = (gen.OUT_DIR / name).read_text(encoding="utf-8")
         assert "AppData" not in text and "/tmp/" not in text and "\\Temp\\" not in text, name
+
+
+def test_readme_bridge_block_matches_sample_output():
+    # read_text() uses universal newlines, so CRLF checkouts compare equal.
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    blocks = re.findall(r"```text\n(.*?)```", readme, re.S)
+    sample = (_load_script().OUT_DIR / "cli-demo.txt").read_text(encoding="utf-8")
+    assert sample in blocks, "README demo output differs from docs/sample-output/cli-demo.txt"
 
 
 def test_bundled_demo_bytes_are_platform_independent():
