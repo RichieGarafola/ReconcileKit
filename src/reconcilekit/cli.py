@@ -7,8 +7,9 @@ Exit codes
    inspect ``exception_count`` in the output (or ``--json``) to act on findings.
 2  Invalid input: a file-level error prevented the run, or the run completed but
    some rows were quarantined (incomplete). An incomplete run is still saved and
-   exported so the quarantined rows can be reviewed. Command-line usage errors also
-   exit 2.
+   exported so the quarantined rows can be reviewed. Command-line usage errors, and
+   ``query``/``parquet`` requests that cannot be served (missing database or run,
+   invalid SQL), also exit 2.
 1  Internal failure, including a financial-invariant violation (nothing is saved).
 
 Set ``RECONCILEKIT_DEBUG=1`` (or ``true``/``yes``/``on``) to print the full traceback of
@@ -19,6 +20,7 @@ same either way.
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import os
 import sys
@@ -28,11 +30,17 @@ from pathlib import Path
 
 from reconcilekit import reporting
 from reconcilekit.demo import DEMO_AS_OF, load_demo
-from reconcilekit.exports import ExportError, build_export_package, export_filename
+from reconcilekit.exports import (
+    ExportError,
+    build_export_package,
+    escape_formula,
+    export_filename,
+)
 from reconcilekit.ingestion import FileValidationError
 from reconcilekit.money import format_usd
 from reconcilekit.normalization import parse_iso_date
 from reconcilekit.reconciliation import InvariantViolation, reconcile_files
+from reconcilekit.reporting_views import ReportingError, export_parquet, run_query
 from reconcilekit.repository import connect, save_run
 
 EXIT_OK = 0
@@ -75,7 +83,65 @@ def _parser() -> argparse.ArgumentParser:
     exp.add_argument("--run-id", required=True)
     exp.add_argument("--db", type=Path, default=DEFAULT_DB)
     exp.add_argument("--export-dir", type=Path, required=True)
+
+    query = sub.add_parser(
+        "query", help="Run one read-only SQL statement (e.g. against the rk_v1 views)"
+    )
+    query.add_argument("--db", type=Path, default=DEFAULT_DB)
+    source = query.add_mutually_exclusive_group(required=True)
+    source.add_argument("--sql", help="SQL text")
+    source.add_argument("--file", type=Path, help="File containing one SQL statement")
+    query.add_argument(
+        "--param",
+        action="append",
+        default=[],
+        metavar="NAME=VALUE",
+        help="Named parameter referenced in the SQL as $NAME (repeatable)",
+    )
+    query.add_argument("--format", choices=("csv", "markdown"), default="csv")
+
+    parquet = sub.add_parser("parquet", help="Export the rk_v1 views for one run as Parquet")
+    parquet.add_argument("--run-id", required=True)
+    parquet.add_argument("--db", type=Path, default=DEFAULT_DB)
+    parquet.add_argument("--out-dir", type=Path, required=True)
     return parser
+
+
+def _text(value: object) -> str:
+    """Stable text for query output: exact decimals, ISO dates, lists joined by ';'."""
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (list, tuple)):
+        return ";".join(_text(v) for v in value)
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+    return str(value)
+
+
+def _query(args: argparse.Namespace) -> int:
+    params: dict[str, str] = {}
+    for item in args.param:
+        name, sep, value = item.partition("=")
+        if not sep or not name.isidentifier():
+            raise ReportingError(f"--param must look like NAME=VALUE, got {item!r}")
+        params[name] = value
+    sql = args.sql if args.sql is not None else args.file.read_text(encoding="utf-8")
+    columns, rows = run_query(args.db, sql, params)
+    if args.format == "csv":
+        # Untrusted text cells get the same formula escaping as the export package.
+        writer = csv.writer(sys.stdout, lineterminator="\n")
+        writer.writerow(columns)
+        for row in rows:
+            writer.writerow([_text(escape_formula(v)) for v in row])
+    else:
+        print("| " + " | ".join(columns) + " |")
+        print("|" + "|".join("---" for _ in columns) + "|")
+        for row in rows:
+            cells = [_text(v).replace("|", "\\|").replace("\n", " ") for v in row]
+            print("| " + " | ".join(cells) + " |")
+    return EXIT_OK
 
 
 def _write_export(db: Path, run_id: str, export_dir: Path) -> Path:
@@ -138,6 +204,12 @@ def _report(db: Path, run_id: str, created: bool, export: Path | None, as_json: 
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
+        if args.command == "query":
+            return _query(args)
+        if args.command == "parquet":
+            for path in export_parquet(args.db, args.run_id, args.out_dir):
+                print(f"Parquet written: {path}")
+            return EXIT_OK
         if args.command == "export":
             path = _write_export(args.db, args.run_id, args.export_dir)
             print(f"Export written: {path}")
@@ -163,7 +235,7 @@ def main(argv: list[str] | None = None) -> int:
     except (FileNotFoundError, IsADirectoryError, PermissionError) as exc:
         print(f"Cannot read input: {exc}", file=sys.stderr)
         return EXIT_INVALID_INPUT
-    except ExportError as exc:
+    except (ExportError, ReportingError) as exc:
         print(str(exc), file=sys.stderr)
         return EXIT_INVALID_INPUT
     except InvariantViolation as exc:
