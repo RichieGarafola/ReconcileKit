@@ -1,0 +1,27 @@
+{
+  "status": "incomplete",
+  "exit_code": 2,
+  "run_id": "RUN-8a40f8d27cbbcb5f",
+  "new_run": false,
+  "as_of_date": "2026-03-31",
+  "quarantined_invoice_rows": 8,
+  "quarantined_payment_rows": 4,
+  "exception_count": 19,
+  "exception_dispositions": {
+    "OPEN": 19
+  },
+  "invoice_status_counts": {
+    "OVERPAID": 1,
+    "PAID": 4,
+    "PARTIALLY_PAID": 1,
+    "UNPAID": 2
+  },
+  "payment_status_counts": {
+    "AMBIGUOUS": 1,
+    "APPLIED": 7,
+    "BLOCKED": 1,
+    "UNMATCHED": 4
+  },
+  "net_difference_cents": -133500,
+  "export_path": null
+}
