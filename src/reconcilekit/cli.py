@@ -11,8 +11,9 @@ Exit codes
    exit 2.
 1  Internal failure, including a financial-invariant violation (nothing is saved).
 
-Set ``RECONCILEKIT_DEBUG=1`` to print the full traceback of an unexpected internal
-error to stderr. Exit codes are the same either way.
+Set ``RECONCILEKIT_DEBUG=1`` (or ``true``/``yes``/``on``) to print the full traceback of
+an unexpected internal error to stderr. Any other value leaves it off. Exit codes are the
+same either way.
 """
 
 from __future__ import annotations
@@ -39,6 +40,7 @@ EXIT_INTERNAL = 1
 EXIT_INVALID_INPUT = 2
 DEFAULT_DB = Path("data") / "reconcilekit.duckdb"
 DEBUG_ENV = "RECONCILEKIT_DEBUG"
+_TRUTHY = frozenset({"1", "true", "yes", "on"})
 
 
 def _as_of(text: str) -> date:
@@ -169,7 +171,7 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_INTERNAL
     except Exception as exc:  # last-resort guard so callers get a defined exit code
         print(f"Internal error: {type(exc).__name__}: {exc}", file=sys.stderr)
-        if os.environ.get(DEBUG_ENV, "").strip() not in ("", "0"):
+        if os.environ.get(DEBUG_ENV, "").strip().lower() in _TRUTHY:
             traceback.print_exc(file=sys.stderr)
         else:
             print(f"Set {DEBUG_ENV}=1 to print the full traceback.", file=sys.stderr)

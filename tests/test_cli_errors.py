@@ -28,7 +28,7 @@ def test_internal_error_exits_one_with_hint_and_no_traceback(
     assert not (tmp_path / "x.duckdb").exists()
 
 
-@pytest.mark.parametrize("value", ["1", "true"])
+@pytest.mark.parametrize("value", ["1", "true", "TRUE", "yes", "on", " 1 "])
 def test_debug_env_prints_traceback(broken_engine, tmp_path, capsys, monkeypatch, value):
     monkeypatch.setenv(cli.DEBUG_ENV, value)
     code = cli.main(["demo", "--db", str(tmp_path / "x.duckdb")])
@@ -38,7 +38,11 @@ def test_debug_env_prints_traceback(broken_engine, tmp_path, capsys, monkeypatch
     assert "simulated engine fault" in err
 
 
-def test_debug_env_zero_means_off(broken_engine, tmp_path, capsys, monkeypatch):
-    monkeypatch.setenv(cli.DEBUG_ENV, "0")
+@pytest.mark.parametrize("value", ["", "0", "false", "no", "off", "False"])
+def test_debug_env_falsy_values_mean_off(broken_engine, tmp_path, capsys, monkeypatch, value):
+    # Regression: "false" and "no" previously enabled the traceback.
+    monkeypatch.setenv(cli.DEBUG_ENV, value)
     assert cli.main(["demo", "--db", str(tmp_path / "x.duckdb")]) == cli.EXIT_INTERNAL
-    assert "Traceback" not in capsys.readouterr().err
+    err = capsys.readouterr().err
+    assert "Traceback" not in err
+    assert f"Set {cli.DEBUG_ENV}=1" in err
