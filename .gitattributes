@@ -1,0 +1,3 @@
+# The bundled demo CSVs are hashed into run IDs. Store and check them out byte-for-byte
+# (no CRLF conversion) so the demo run ID is identical on every platform.
+src/reconcilekit/demo_data/*.csv -text

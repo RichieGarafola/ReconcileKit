@@ -90,7 +90,7 @@ Output of `reconcilekit demo` (unedited; reproduced by
 [`scripts/generate_sample_outputs.py`](scripts/generate_sample_outputs.py)):
 
 ```text
-Run RUN-8a40f8d27cbbcb5f (new)
+Run RUN-2e17cda32757cc29 (new)
 As-of date: 2026-03-31
 Data completeness: INCOMPLETE - 8 invoice and 4 payment rows quarantined. Totals cover eligible records only.
     Eligible invoices                     $7,585.75
@@ -106,7 +106,7 @@ Data completeness: INCOMPLETE - 8 invoice and 4 payment rows quarantined. Totals
   Invariant P = A + U + M + B: PASS
   Invariant I - P = O - X - U - M - B: PASS
 Exceptions requiring review: 19 {'OPEN': 19}
-Export written: exports/reconcilekit_RUN-8a40f8d27cbbcb5f.zip
+Export written: exports/reconcilekit_RUN-2e17cda32757cc29.zip
 ```
 
 The demo is *incomplete* on purpose: it plants duplicates, a blank amount, `99.999`, a EUR

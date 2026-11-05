@@ -28,3 +28,11 @@ def test_sample_outputs_contain_no_machine_paths():
     for name in gen.build():
         text = (gen.OUT_DIR / name).read_text(encoding="utf-8")
         assert "AppData" not in text and "/tmp/" not in text and "\\Temp\\" not in text, name
+
+
+def test_bundled_demo_bytes_are_platform_independent():
+    """Run IDs hash input bytes, so CRLF conversion on checkout would change the demo's ID."""
+    from reconcilekit.demo import load_demo
+
+    for data in load_demo():
+        assert b"\r" not in data, "demo CSVs must keep LF line endings (see .gitattributes)"
