@@ -24,6 +24,7 @@ import duckdb
 
 from reconcilekit.models import Disposition
 from reconcilekit.reconciliation import ReconciliationRun, canonical_json
+from reconcilekit.reporting_views import install_reporting_views
 
 SCHEMA_VERSION = 1
 MAX_REVIEWER_LENGTH = 80
@@ -195,7 +196,7 @@ def utc_now() -> datetime:
 
 @contextmanager
 def connect(db_path: str | Path) -> Iterator[duckdb.DuckDBPyConnection]:
-    """Open the database, creating the schema if needed, and always close it."""
+    """Open the database, creating the schema and rk_v1 reporting views if needed."""
     path = Path(db_path)
     if str(db_path) != ":memory:":
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -204,6 +205,7 @@ def connect(db_path: str | Path) -> Iterator[duckdb.DuckDBPyConnection]:
         con.execute(_DDL)
         if con.execute("SELECT count(*) FROM schema_info").fetchone()[0] == 0:
             con.execute("INSERT INTO schema_info VALUES (?)", [SCHEMA_VERSION])
+        install_reporting_views(con)
         yield con
     finally:
         con.close()

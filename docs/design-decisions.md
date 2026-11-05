@@ -70,3 +70,29 @@ can be traced back to the source. A model-generated match or summary is not repr
 from the same inputs, cannot easily be audited, and could state money facts that the
 arithmetic does not support. Deterministic rules come first. Any later AI help, such as
 drafting a reviewer note, would have to sit outside the findings and never change them.
+
+## Reporting through versioned read-only views
+
+Reporting reads the same tables the engine wrote, through views in a dedicated `rk_v1`
+schema, rather than copying results into reporting tables. A view cannot drift from the
+stored facts, needs no refresh step, and shows a new review event immediately. DuckDB
+rejects writes to views, so the reporting surface cannot alter a finding.
+
+The schema name is the contract version. Columns in `rk_v1` keep their names, types, and
+meaning; a breaking change would be added as `rk_v2` next to it, so a dashboard built on
+`rk_v1` keeps working until it is moved deliberately. A test compares the live views with
+both the declared contract and the column tables in `docs/sql-reporting.md`.
+
+Money keeps its exact form. The stored integer cents are exposed as `BIGINT`, and dollar
+columns are produced by multiplying by `DECIMAL 0.01`, because DuckDB turns decimal
+*division* into `DOUBLE`. Percentages are computed with integer arithmetic and rounded half
+up, so no reported figure passes through floating point.
+
+Storage tables are referenced as `main.*` inside the views. Unqualified names resolve
+against whichever database a session has selected, so a view would break when an analyst
+attached the file under an alias; schema-qualified names resolve within the view's own
+database.
+
+There is no "latest run" view. Two runs for the same as-of date can come from different
+extracts, and choosing the authoritative one is a business decision, so every query names
+its run explicitly.

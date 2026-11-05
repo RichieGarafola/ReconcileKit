@@ -38,6 +38,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "reconcilekit.demo_data" = ["*.csv"]
+"reconcilekit.sql" = ["*.sql"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

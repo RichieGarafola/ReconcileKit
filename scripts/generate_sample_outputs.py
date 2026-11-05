@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import io
+import json
 import sys
 import tempfile
 import zipfile
@@ -24,6 +25,9 @@ from reconcilekit import cli
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT_DIR = ROOT / "docs" / "sample-output"
+EXAMPLES_SQL = ROOT / "examples" / "sql"
+# Shows run creation timestamps, so its output is not reproducible.
+SKIPPED_EXAMPLES = {"00_list_runs.sql"}
 PACKAGE_FILES = (
     "invoice_results.csv",
     "payment_results.csv",
@@ -49,6 +53,23 @@ def build() -> dict[str, str]:
         (zip_path,) = export_dir.glob("reconcilekit_RUN-*.zip")
         with zipfile.ZipFile(zip_path) as zf:
             files = {name: zf.read(name).decode("utf-8") for name in PACKAGE_FILES}
+        run_id = json.loads(as_json)["run_id"]
+        for sql_file in sorted(EXAMPLES_SQL.glob("*.sql")):
+            if sql_file.name in SKIPPED_EXAMPLES:
+                continue
+            files[f"sql/{sql_file.stem}.md"] = _run_cli(
+                [
+                    "query",
+                    "--db",
+                    str(db),
+                    "--file",
+                    str(sql_file),
+                    "--param",
+                    f"run_id={run_id}",
+                    "--format",
+                    "markdown",
+                ]
+            )
     text = text.replace(str(export_dir), "exports").replace("\\", "/")
     files["cli-demo.txt"] = text
     files["cli-demo.json"] = as_json
@@ -77,6 +98,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1 if stale else 0
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     for name, body in build().items():
+        (OUT_DIR / name).parent.mkdir(parents=True, exist_ok=True)
         (OUT_DIR / name).write_text(body, encoding="utf-8", newline="\n")
         print(f"wrote docs/sample-output/{name}")
     return 0

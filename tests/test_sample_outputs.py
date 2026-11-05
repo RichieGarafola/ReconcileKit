@@ -6,6 +6,8 @@ import importlib.util
 import re
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "generate_sample_outputs.py"
 
@@ -38,6 +40,16 @@ def test_readme_bridge_block_matches_sample_output():
     blocks = re.findall(r"```text\n(.*?)```", readme, re.S)
     sample = (_load_script().OUT_DIR / "cli-demo.txt").read_text(encoding="utf-8")
     assert sample in blocks, "README demo output differs from docs/sample-output/cli-demo.txt"
+
+
+@pytest.mark.parametrize(
+    "name",
+    ["01_reconciliation_overview", "03_customers_by_outstanding", "04_payment_exceptions"],
+)
+def test_readme_sql_results_match_sample_output(name):
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    sample = (ROOT / "docs" / "sample-output" / "sql" / f"{name}.md").read_text(encoding="utf-8")
+    assert sample in readme, f"README result for {name}.sql differs from docs/sample-output/sql"
 
 
 def test_bundled_demo_bytes_are_platform_independent():

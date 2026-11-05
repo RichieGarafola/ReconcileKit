@@ -198,7 +198,8 @@ date, versions, export timestamp, SHA-256 of every packaged file) and `README.tx
 | `repository.py` | DuckDB schema, atomic idempotent run save, validated append-only review events |
 | `reporting.py` | SQL queries (latest disposition via `arg_max`), bridge, invariant re-checks |
 | `exports.py` | ZIP package, money formatting, formula escaping, manifest |
-| `cli.py`, `demo.py`, `demo_data/` | Command-line entry point; bundled demo CSVs loaded via `importlib.resources` |
+| `reporting_views.py`, `sql/rk_v1.sql` | Versioned read-only SQL views (`rk_v1`), read-only query, Parquet export; see [SQL reporting](sql-reporting.md) |
+| `cli.py`, `demo.py`, `demo_data/` | Command-line entry point (`reconcile`, `demo`, `export`, `query`, `parquet`); bundled demo CSVs loaded via `importlib.resources` |
 | `app.py` | Streamlit presentation only |
 
 The engine (`reconcile_files`) has no Streamlit or database dependency.
