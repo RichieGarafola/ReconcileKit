@@ -89,3 +89,27 @@ exception.
 
 The net difference of −1,335.00 hides 1,575.50 that is still owed and 50.00 that was
 overpaid. A small net difference never means the ledgers agree.
+
+## Reporting views (`rk_v1`)
+
+Derived by hand from the figures above. `tests/test_reporting_views.py` asserts each one.
+
+- **Settled invoice value** = I − O = 7,585.75 − 1,575.50 = **6,010.25** (also A − X =
+  6,060.25 − 50.00).
+- **Settled share** = 6,010.25 / 7,585.75 = 79.2308…% → **79.23%** (rounded half up).
+- **Open invoices** (3), as of 2026-03-31:
+
+| Invoice | Customer | Outstanding | Days overdue | Aging bucket | Exception |
+|---|---|---:|---:|---|---|
+| INV-1003 | CUST-B | 300.00 | 45 (due 2026-02-14) | `DAYS_31_60` | yes (partially paid) |
+| INV-1005 | CUST-C | 975.50 | 19 (due 2026-03-12) | `DAYS_1_30` | yes (unpaid, overdue) |
+| INV-1007 | CUST-D | 300.00 | not overdue (due 2026-04-30) | `NOT_OVERDUE` | none |
+
+- **Outstanding by customer** (share of O = 1,575.50, rounded half up to 0.1%): CUST-C
+  975.50 (61.9%), CUST-B 300.00 (19.0%), CUST-D 300.00 (19.0%). The shares add to 99.9%
+  because of rounding.
+- **Payment exceptions** (6 eligible payments not applied): PAY-5008 125.00, PAY-5009
+  975.50, PAY-5010 310.00, PAY-5011 250.00 (UNMATCHED); PAY-5012 1,000.00 (AMBIGUOUS);
+  PAY-5013 200.00 (BLOCKED). Total **2,860.50** = U + M + B.
+- **Unresolved exceptions**: all **19** are OPEN (no review events): INVOICE/REVIEW 3,
+  PAYMENT/INFO 1, PAYMENT/REVIEW 6, VALIDATION/QUARANTINE 9.
