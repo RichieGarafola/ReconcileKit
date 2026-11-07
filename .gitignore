@@ -27,3 +27,7 @@ RECONCILEKIT_HANDOFF.md
 .idea/
 .DS_Store
 Thumbs.db
+
+# Power BI Desktop local state (Microsoft defaults for PBIP): data cache and user settings
+**/.pbi/localSettings.json
+**/.pbi/cache.abf

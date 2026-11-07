@@ -1,0 +1,4 @@
+/// Absolute path of powerbi\dataset\model. Power Query does not resolve relative paths.
+expression DataFolder = "C:\dev\ReconcileKit\powerbi\dataset\model" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+
+	annotation PBI_ResultType = Text

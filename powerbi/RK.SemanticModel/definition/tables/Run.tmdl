@@ -1,0 +1,624 @@
+/// One row per reconciliation run (one complete snapshot). Engine totals; never summed across runs.
+table Run
+
+	/// Distinct runs visible
+	measure 'Runs In Context' =
+			DISTINCTCOUNT ( 'Run'[run_id] )
+		formatString: #,0
+		displayFolder: KPIs
+
+	/// I: eligible invoices
+	measure 'Eligible Invoice Value' =
+			IF ( [Runs In Context] = 1, SUM ( 'Run'[eligible_invoice_usd] ) )
+		formatString: \$#,0.00;-\$#,0.00;\$#,0.00
+		displayFolder: KPIs
+
+	/// I − O (= A − X)
+	measure 'Settled Invoice Value' =
+			IF ( [Runs In Context] = 1, SUM ( 'Run'[settled_invoice_usd] ) )
+		formatString: \$#,0.00;-\$#,0.00;\$#,0.00
+		displayFolder: KPIs
+
+	/// (I − O) / I
+	measure 'Settled %' =
+			IF (
+			    [Runs In Context] = 1,
+			    DIVIDE ( SUM ( 'Run'[settled_invoice_cents] ), SUM ( 'Run'[eligible_invoice_cents] ) )
+			)
+		formatString: 0.00%
+		displayFolder: KPIs
+
+	/// O
+	measure 'Outstanding Balance' =
+			IF ( [Runs In Context] = 1, SUM ( 'Run'[outstanding_usd] ) )
+		formatString: \$#,0.00;-\$#,0.00;\$#,0.00
+		displayFolder: KPIs
+
+	/// X
+	measure Overpayments =
+			IF ( [Runs In Context] = 1, SUM ( 'Run'[overpayment_usd] ) )
+		formatString: \$#,0.00;-\$#,0.00;\$#,0.00
+		displayFolder: KPIs
+
+	/// I − P
+	measure 'Net Difference' =
+			IF ( [Runs In Context] = 1, SUM ( 'Run'[net_difference_usd] ) )
+		formatString: \$#,0.00;-\$#,0.00;\$#,0.00
+		displayFolder: KPIs
+
+	/// Invoice + payment rows excluded by validation
+	measure 'Quarantined Rows' =
+			IF (
+			    [Runs In Context] = 1,
+			    SUM ( 'Run'[quarantined_invoice_rows] ) + SUM ( 'Run'[quarantined_payment_rows] )
+			)
+		formatString: #,0
+		displayFolder: KPIs
+
+	/// All three engine invariants
+	measure 'Arithmetic Status' =
+			SELECTEDVALUE ( 'Run'[arithmetic_status], "Select one run" )
+		displayFolder: KPIs
+
+	/// Any rows quarantined?
+	measure 'Data Completeness' =
+			SELECTEDVALUE ( 'Run'[data_completeness], "Select one run" )
+		displayFolder: KPIs
+
+	/// Σ open items = engine O
+	measure 'Check Outstanding Ties' =
+			IF (
+			    [Runs In Context] = 1,
+			    SUM ( 'Open Invoice'[outstanding_cents] ) + 0 = SUM ( 'Run'[outstanding_cents] )
+			)
+		displayFolder: KPIs
+
+	/// Σ payment exceptions = U + M + B
+	measure 'Check Payment Exceptions Tie' =
+			IF (
+			    [Runs In Context] = 1,
+			    SUM ( 'Payment Exception'[payment_amount_cents] ) + 0
+			        = SUM ( 'Run'[unmatched_payment_cents] )
+			            + SUM ( 'Run'[ambiguous_payment_cents] )
+			            + SUM ( 'Run'[blocked_payment_cents] )
+			)
+		displayFolder: KPIs
+
+	/// I − P = O − X − U − M − B
+	measure 'Check Bridge' =
+			IF (
+			    [Runs In Context] = 1,
+			    SUM ( 'Run'[net_difference_cents] ) = SUM ( 'Run'[explained_difference_cents] )
+			)
+		displayFolder: KPIs
+
+	/// Σ explaining bridge steps = net difference
+	measure 'Check Bridge Steps' =
+			IF (
+			    [Runs In Context] = 1,
+			    CALCULATE (
+			        SUM ( 'Bridge Step'[signed_cents] ),
+			        'Bridge Step'[step_kind] = "explains"
+			    )
+			        = SUM ( 'Run'[net_difference_cents] )
+			)
+		displayFolder: KPIs
+
+	/// DAX ratio, rounded, equals the SQL value
+	measure 'Check Settled % Matches SQL' =
+			IF (
+			    [Runs In Context] = 1,
+			    ROUND ( [Settled %] * 100, 2 ) = SUM ( 'Run'[settled_invoice_pct] )
+			)
+		displayFolder: KPIs
+
+	/// How many of the five checks above are TRUE
+	measure 'Controls Passed' =
+			IF (
+			    [Runs In Context] = 1,
+			    INT ( [Check Outstanding Ties] ) + INT ( [Check Payment Exceptions Tie] )
+			        + INT ( [Check Bridge] ) + INT ( [Check Bridge Steps] )
+			        + INT ( [Check Settled % Matches SQL] )
+			)
+		formatString: #,0
+		displayFolder: KPIs
+
+	/// "All 5 controls pass", or "n of 5 controls pass"
+	measure 'Controls Status' =
+			IF (
+			    [Runs In Context] = 1,
+			    IF (
+			        [Controls Passed] = 5,
+			        "All 5 controls pass",
+			        [Controls Passed] & " of 5 controls pass"
+			    ),
+			    "Select one snapshot"
+			)
+		displayFolder: KPIs
+
+	/// Label of the selected snapshot
+	measure 'Selected Snapshot' =
+			SELECTEDVALUE ( 'Run'[snapshot_label], "Select one snapshot" )
+		displayFolder: KPIs
+
+	/// Run ID, as-of date, completeness, quarantined rows, arithmetic status
+	measure 'Run Banner' =
+			IF (
+			    [Runs In Context] = 1,
+			    SELECTEDVALUE ( 'Run'[run_id] ) & "  ·  as of "
+			        & FORMAT ( SELECTEDVALUE ( 'Run'[as_of_date] ), "yyyy-mm-dd" ) & "  ·  "
+			        & [Data Completeness] & " (" & [Quarantined Rows] & " rows quarantined)  ·  "
+			        & "Arithmetic " & [Arithmetic Status],
+			    "Select one snapshot to see run-level figures"
+			)
+		displayFolder: KPIs
+
+	column run_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: run_id
+
+		annotation SummarizationSetBy = User
+
+	column created_at_utc
+		dataType: dateTime
+		formatString: yyyy-mm-dd hh:nn
+		summarizeBy: none
+		sourceColumn: created_at_utc
+
+		annotation SummarizationSetBy = User
+
+	column as_of_date
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		summarizeBy: none
+		sourceColumn: as_of_date
+
+		annotation SummarizationSetBy = User
+
+	column engine_version
+		dataType: string
+		summarizeBy: none
+		sourceColumn: engine_version
+
+		annotation SummarizationSetBy = User
+
+	column rule_version
+		dataType: string
+		summarizeBy: none
+		sourceColumn: rule_version
+
+		annotation SummarizationSetBy = User
+
+	column invoice_label
+		dataType: string
+		summarizeBy: none
+		sourceColumn: invoice_label
+
+		annotation SummarizationSetBy = User
+
+	column invoice_sha256
+		dataType: string
+		summarizeBy: none
+		sourceColumn: invoice_sha256
+
+		annotation SummarizationSetBy = User
+
+	column invoice_rows
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: invoice_rows
+
+		annotation SummarizationSetBy = User
+
+	column eligible_invoices
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: eligible_invoices
+
+		annotation SummarizationSetBy = User
+
+	column quarantined_invoice_rows
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: quarantined_invoice_rows
+
+		annotation SummarizationSetBy = User
+
+	column payment_label
+		dataType: string
+		summarizeBy: none
+		sourceColumn: payment_label
+
+		annotation SummarizationSetBy = User
+
+	column payment_sha256
+		dataType: string
+		summarizeBy: none
+		sourceColumn: payment_sha256
+
+		annotation SummarizationSetBy = User
+
+	column payment_rows
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: payment_rows
+
+		annotation SummarizationSetBy = User
+
+	column eligible_payments
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: eligible_payments
+
+		annotation SummarizationSetBy = User
+
+	column quarantined_payment_rows
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: quarantined_payment_rows
+
+		annotation SummarizationSetBy = User
+
+	column is_complete
+		dataType: boolean
+		summarizeBy: none
+		sourceColumn: is_complete
+
+		annotation SummarizationSetBy = User
+
+	column data_completeness
+		dataType: string
+		summarizeBy: none
+		sourceColumn: data_completeness
+
+		annotation SummarizationSetBy = User
+
+	column eligible_invoice_cents
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: eligible_invoice_cents
+
+		annotation SummarizationSetBy = User
+
+	column applied_payment_cents
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: applied_payment_cents
+
+		annotation SummarizationSetBy = User
+
+	column outstanding_cents
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: outstanding_cents
+
+		annotation SummarizationSetBy = User
+
+	column overpayment_cents
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: overpayment_cents
+
+		annotation SummarizationSetBy = User
+
+	column eligible_payment_cents
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: eligible_payment_cents
+
+		annotation SummarizationSetBy = User
+
+	column unmatched_payment_cents
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: unmatched_payment_cents
+
+		annotation SummarizationSetBy = User
+
+	column ambiguous_payment_cents
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: ambiguous_payment_cents
+
+		annotation SummarizationSetBy = User
+
+	column blocked_payment_cents
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: blocked_payment_cents
+
+		annotation SummarizationSetBy = User
+
+	column overdue_cents
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: overdue_cents
+
+		annotation SummarizationSetBy = User
+
+	column overdue_invoices
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: overdue_invoices
+
+		annotation SummarizationSetBy = User
+
+	column settled_invoice_cents
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: settled_invoice_cents
+
+		annotation SummarizationSetBy = User
+
+	column net_difference_cents
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: net_difference_cents
+
+		annotation SummarizationSetBy = User
+
+	column explained_difference_cents
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: explained_difference_cents
+
+		annotation SummarizationSetBy = User
+
+	column eligible_invoice_usd
+		dataType: decimal
+		formatString: \$#,0.00;-\$#,0.00;\$#,0.00
+		summarizeBy: none
+		sourceColumn: eligible_invoice_usd
+
+		annotation SummarizationSetBy = User
+
+	column applied_payment_usd
+		dataType: decimal
+		formatString: \$#,0.00;-\$#,0.00;\$#,0.00
+		summarizeBy: none
+		sourceColumn: applied_payment_usd
+
+		annotation SummarizationSetBy = User
+
+	column outstanding_usd
+		dataType: decimal
+		formatString: \$#,0.00;-\$#,0.00;\$#,0.00
+		summarizeBy: none
+		sourceColumn: outstanding_usd
+
+		annotation SummarizationSetBy = User
+
+	column overpayment_usd
+		dataType: decimal
+		formatString: \$#,0.00;-\$#,0.00;\$#,0.00
+		summarizeBy: none
+		sourceColumn: overpayment_usd
+
+		annotation SummarizationSetBy = User
+
+	column eligible_payment_usd
+		dataType: decimal
+		formatString: \$#,0.00;-\$#,0.00;\$#,0.00
+		summarizeBy: none
+		sourceColumn: eligible_payment_usd
+
+		annotation SummarizationSetBy = User
+
+	column unmatched_payment_usd
+		dataType: decimal
+		formatString: \$#,0.00;-\$#,0.00;\$#,0.00
+		summarizeBy: none
+		sourceColumn: unmatched_payment_usd
+
+		annotation SummarizationSetBy = User
+
+	column ambiguous_payment_usd
+		dataType: decimal
+		formatString: \$#,0.00;-\$#,0.00;\$#,0.00
+		summarizeBy: none
+		sourceColumn: ambiguous_payment_usd
+
+		annotation SummarizationSetBy = User
+
+	column blocked_payment_usd
+		dataType: decimal
+		formatString: \$#,0.00;-\$#,0.00;\$#,0.00
+		summarizeBy: none
+		sourceColumn: blocked_payment_usd
+
+		annotation SummarizationSetBy = User
+
+	column overdue_usd
+		dataType: decimal
+		formatString: \$#,0.00;-\$#,0.00;\$#,0.00
+		summarizeBy: none
+		sourceColumn: overdue_usd
+
+		annotation SummarizationSetBy = User
+
+	column settled_invoice_usd
+		dataType: decimal
+		formatString: \$#,0.00;-\$#,0.00;\$#,0.00
+		summarizeBy: none
+		sourceColumn: settled_invoice_usd
+
+		annotation SummarizationSetBy = User
+
+	column net_difference_usd
+		dataType: decimal
+		formatString: \$#,0.00;-\$#,0.00;\$#,0.00
+		summarizeBy: none
+		sourceColumn: net_difference_usd
+
+		annotation SummarizationSetBy = User
+
+	column explained_difference_usd
+		dataType: decimal
+		formatString: \$#,0.00;-\$#,0.00;\$#,0.00
+		summarizeBy: none
+		sourceColumn: explained_difference_usd
+
+		annotation SummarizationSetBy = User
+
+	column settled_invoice_pct
+		dataType: decimal
+		formatString: 0.00
+		summarizeBy: none
+		sourceColumn: settled_invoice_pct
+
+		annotation SummarizationSetBy = User
+
+	column invariant_invoice_side_ok
+		dataType: boolean
+		summarizeBy: none
+		sourceColumn: invariant_invoice_side_ok
+
+		annotation SummarizationSetBy = User
+
+	column invariant_payment_side_ok
+		dataType: boolean
+		summarizeBy: none
+		sourceColumn: invariant_payment_side_ok
+
+		annotation SummarizationSetBy = User
+
+	column invariant_bridge_ok
+		dataType: boolean
+		summarizeBy: none
+		sourceColumn: invariant_bridge_ok
+
+		annotation SummarizationSetBy = User
+
+	column arithmetic_status
+		dataType: string
+		summarizeBy: none
+		sourceColumn: arithmetic_status
+
+		annotation SummarizationSetBy = User
+
+	column exception_count
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: exception_count
+
+		annotation SummarizationSetBy = User
+
+	column unresolved_exception_count
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: unresolved_exception_count
+
+		annotation SummarizationSetBy = User
+
+	column snapshot_label
+		dataType: string
+		summarizeBy: none
+		sourceColumn: snapshot_label
+		sortByColumn: snapshot_order
+
+		annotation SummarizationSetBy = User
+
+	column snapshot_order
+		dataType: int64
+		formatString: 0
+		isHidden
+		summarizeBy: none
+		sourceColumn: snapshot_order
+
+		annotation SummarizationSetBy = User
+
+	column is_report_default
+		dataType: boolean
+		summarizeBy: none
+		sourceColumn: is_report_default
+
+		annotation SummarizationSetBy = User
+
+	partition Run = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\run.parquet")),
+				    Typed = Table.TransformColumnTypes(
+				        Source,
+				        {
+				            {"run_id", type text},
+				            {"created_at_utc", type datetime},
+				            {"as_of_date", type date},
+				            {"engine_version", type text},
+				            {"rule_version", type text},
+				            {"invoice_label", type text},
+				            {"invoice_sha256", type text},
+				            {"invoice_rows", Int64.Type},
+				            {"eligible_invoices", Int64.Type},
+				            {"quarantined_invoice_rows", Int64.Type},
+				            {"payment_label", type text},
+				            {"payment_sha256", type text},
+				            {"payment_rows", Int64.Type},
+				            {"eligible_payments", Int64.Type},
+				            {"quarantined_payment_rows", Int64.Type},
+				            {"is_complete", type logical},
+				            {"data_completeness", type text},
+				            {"eligible_invoice_cents", Int64.Type},
+				            {"applied_payment_cents", Int64.Type},
+				            {"outstanding_cents", Int64.Type},
+				            {"overpayment_cents", Int64.Type},
+				            {"eligible_payment_cents", Int64.Type},
+				            {"unmatched_payment_cents", Int64.Type},
+				            {"ambiguous_payment_cents", Int64.Type},
+				            {"blocked_payment_cents", Int64.Type},
+				            {"overdue_cents", Int64.Type},
+				            {"overdue_invoices", Int64.Type},
+				            {"settled_invoice_cents", Int64.Type},
+				            {"net_difference_cents", Int64.Type},
+				            {"explained_difference_cents", Int64.Type},
+				            {"eligible_invoice_usd", Currency.Type},
+				            {"applied_payment_usd", Currency.Type},
+				            {"outstanding_usd", Currency.Type},
+				            {"overpayment_usd", Currency.Type},
+				            {"eligible_payment_usd", Currency.Type},
+				            {"unmatched_payment_usd", Currency.Type},
+				            {"ambiguous_payment_usd", Currency.Type},
+				            {"blocked_payment_usd", Currency.Type},
+				            {"overdue_usd", Currency.Type},
+				            {"settled_invoice_usd", Currency.Type},
+				            {"net_difference_usd", Currency.Type},
+				            {"explained_difference_usd", Currency.Type},
+				            {"settled_invoice_pct", Currency.Type},
+				            {"invariant_invoice_side_ok", type logical},
+				            {"invariant_payment_side_ok", type logical},
+				            {"invariant_bridge_ok", type logical},
+				            {"arithmetic_status", type text},
+				            {"exception_count", Int64.Type},
+				            {"unresolved_exception_count", Int64.Type},
+				            {"snapshot_label", type text},
+				            {"snapshot_order", Int64.Type},
+				            {"is_report_default", type logical}
+				        }
+				    )
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

@@ -1,0 +1,347 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.13.0/schema.json",
+  "name": "compare",
+  "position": {
+    "x": 24,
+    "y": 508,
+    "z": 12000,
+    "height": 196,
+    "width": 1232,
+    "tabOrder": 12000
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Run"
+                    }
+                  },
+                  "Property": "snapshot_label"
+                }
+              },
+              "queryRef": "Run.snapshot_label",
+              "nativeQueryRef": "snapshot_label",
+              "displayName": "Snapshot"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Run"
+                    }
+                  },
+                  "Property": "as_of_date"
+                }
+              },
+              "queryRef": "Run.as_of_date",
+              "nativeQueryRef": "as_of_date",
+              "displayName": "As of"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Run"
+                    }
+                  },
+                  "Property": "Eligible Invoice Value"
+                }
+              },
+              "queryRef": "Run.Eligible Invoice Value",
+              "nativeQueryRef": "Eligible Invoice Value",
+              "displayName": "Eligible invoices"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Run"
+                    }
+                  },
+                  "Property": "Settled %"
+                }
+              },
+              "queryRef": "Run.Settled %",
+              "nativeQueryRef": "Settled %",
+              "displayName": "Settled %"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Run"
+                    }
+                  },
+                  "Property": "Outstanding Balance"
+                }
+              },
+              "queryRef": "Run.Outstanding Balance",
+              "nativeQueryRef": "Outstanding Balance",
+              "displayName": "Outstanding"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Payment Exception"
+                    }
+                  },
+                  "Property": "Payment Exception Amount"
+                }
+              },
+              "queryRef": "Payment Exception.Payment Exception Amount",
+              "nativeQueryRef": "Payment Exception Amount",
+              "displayName": "Unapplied payments"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Exception"
+                    }
+                  },
+                  "Property": "Unresolved Exceptions"
+                }
+              },
+              "queryRef": "Exception.Unresolved Exceptions",
+              "nativeQueryRef": "Unresolved Exceptions",
+              "displayName": "Unresolved"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Run"
+                    }
+                  },
+                  "Property": "Data Completeness"
+                }
+              },
+              "queryRef": "Run.Data Completeness",
+              "nativeQueryRef": "Data Completeness",
+              "displayName": "Completeness"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Run"
+                    }
+                  },
+                  "Property": "Arithmetic Status"
+                }
+              },
+              "queryRef": "Run.Arithmetic Status",
+              "nativeQueryRef": "Arithmetic Status",
+              "displayName": "Arithmetic"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "Run"
+                  }
+                },
+                "Property": "snapshot_label"
+              }
+            },
+            "direction": "Ascending"
+          }
+        ]
+      }
+    },
+    "objects": {
+      "columnHeaders": [
+        {
+          "properties": {
+            "fontColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#1F2A37'"
+                    }
+                  }
+                }
+              }
+            },
+            "backColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#EDF2F7'"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "grid": [
+        {
+          "properties": {
+            "gridHorizontal": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "total": [
+        {
+          "properties": {
+            "totals": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Snapshot comparison (not filtered by the snapshot selector; two snapshots, not a trend)'"
+                }
+              }
+            },
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "11D"
+                }
+              }
+            },
+            "fontColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#1F2A37'"
+                    }
+                  }
+                }
+              }
+            },
+            "bold": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "background": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "color": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#FFFFFF'"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "border": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "color": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#E3E8EF'"
+                    }
+                  }
+                }
+              }
+            },
+            "radius": {
+              "expr": {
+                "Literal": {
+                  "Value": "6D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "dropShadow": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}
