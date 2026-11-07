@@ -168,8 +168,22 @@ pytest tests/test_powerbi_demo.py tests/test_powerbi_pbip.py
 
 **Edit through the generator.** The project files are generated from `measures.dax`,
 `model.md`, the Parquet schemas, and `build_pbip.py`, and CI fails if they drift. Change those
-sources and regenerate. If you edit and save in Power BI Desktop instead, Desktop may rewrite
-the files; port the change back into the generator.
+sources and regenerate.
+
+**Saving from Desktop works.** The generated project was saved once through Power BI Desktop's
+normal Save, in an isolated copy, then reopened, refreshed, and revalidated (76/76). Desktop
+rewrote every file in its own canonical form:
+
+- CRLF line endings;
+- random `lineageTag` GUIDs;
+- compatibility level 1600 → 1606;
+- newer PBIR schema stamps and single-line measure formatting;
+- housekeeping files such as `.platform`, `cultures/en-US.tmdl`, and `diagramLayout.json`.
+
+A comparison found no semantic change to any measure, column, Power Query partition, or report
+definition. Because the files are rewritten, a project saved from Desktop no longer matches
+`build_pbip.py --check`. Port such edits back into the generator rather than committing the
+saved files.
 
 ## Limitations
 
@@ -177,9 +191,8 @@ the files; port the change back into the generator.
   refresh, or public link.
 - **Absolute data path.** `DataFolder` must be an absolute path (Power Query does not resolve
   relative ones); the default assumes `C:\dev\ReconcileKit`.
-- **Tested on one Desktop version.** Validated with Power BI Desktop 2.159 (October 2026) only.
-  The project was opened and validated, but never re-saved from Desktop (the generated files are
-  the source).
+- **Tested on one Desktop version.** Opened, saved, reopened, and validated with Power BI Desktop
+  2.159 (October 2026) only.
 - **Not shown, because `rk_v1` does not provide it.** There is no review-event timeline (only
   the latest review per exception is exposed) and no field-level validation detail (validation
   is shown by rule code). There is no drill-through page.
