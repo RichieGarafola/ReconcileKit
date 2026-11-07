@@ -1,0 +1,140 @@
+// ReconcileKit Power BI measure catalog.
+//
+// NOT YET EXECUTED: this file has not been run in a DAX engine. Static checks
+// (tests/test_powerbi_demo.py) confirm every 'Table'[column] reference exists in the model
+// files. The expected results come from the same definitions computed in DuckDB SQL
+// (powerbi/dataset/expected_kpis.json) and from hand calculations (powerbi/model/model.md).
+//
+// How to use: after building the model (powerbi/README.md), open DAX query view, paste this
+// file, and run it. Each EVALUATE should match expected_kpis.json. The same MEASURE lines
+// are the definitions to add to the model.
+//
+// Rules: run-level KPIs read the engine totals on 'Run' and return BLANK unless exactly one
+// run is in filter context. Fact-table measures (Payment Exception, Exception, Open Invoice)
+// must be used with a single run selected; the report applies a single-select run slicer.
+
+DEFINE
+    // ---- run context guard
+    MEASURE 'Run'[Runs In Context] = DISTINCTCOUNT ( 'Run'[run_id] )
+
+    // ---- run-level KPIs (engine totals; never summed from facts)
+    MEASURE 'Run'[Eligible Invoice Value] =
+        IF ( [Runs In Context] = 1, SUM ( 'Run'[eligible_invoice_usd] ) )
+    MEASURE 'Run'[Settled Invoice Value] =
+        IF ( [Runs In Context] = 1, SUM ( 'Run'[settled_invoice_usd] ) )
+    MEASURE 'Run'[Settled %] =
+        IF (
+            [Runs In Context] = 1,
+            DIVIDE ( SUM ( 'Run'[settled_invoice_cents] ), SUM ( 'Run'[eligible_invoice_cents] ) )
+        )
+    MEASURE 'Run'[Outstanding Balance] =
+        IF ( [Runs In Context] = 1, SUM ( 'Run'[outstanding_usd] ) )
+    MEASURE 'Run'[Overpayments] =
+        IF ( [Runs In Context] = 1, SUM ( 'Run'[overpayment_usd] ) )
+    MEASURE 'Run'[Net Difference] =
+        IF ( [Runs In Context] = 1, SUM ( 'Run'[net_difference_usd] ) )
+    MEASURE 'Run'[Quarantined Rows] =
+        IF (
+            [Runs In Context] = 1,
+            SUM ( 'Run'[quarantined_invoice_rows] ) + SUM ( 'Run'[quarantined_payment_rows] )
+        )
+    MEASURE 'Run'[Arithmetic Status] =
+        SELECTEDVALUE ( 'Run'[arithmetic_status], "Select one run" )
+    MEASURE 'Run'[Data Completeness] =
+        SELECTEDVALUE ( 'Run'[data_completeness], "Select one run" )
+
+    // ---- exception exposure (fact tables; filter by customer, status, category)
+    MEASURE 'Payment Exception'[Payment Exception Count] =
+        COUNTROWS ( 'Payment Exception' )
+    MEASURE 'Payment Exception'[Payment Exception Amount] =
+        SUM ( 'Payment Exception'[payment_amount_usd] )
+    MEASURE 'Exception'[Exception Count] =
+        COUNTROWS ( 'Exception' )
+    MEASURE 'Exception'[Unresolved Exceptions] =
+        CALCULATE ( COUNTROWS ( 'Exception' ), 'Exception'[is_resolved] = FALSE () )
+    MEASURE 'Exception'[Never Reviewed] =
+        CALCULATE ( COUNTROWS ( 'Exception' ), 'Exception'[review_event_count] = 0 )
+    MEASURE 'Exception'[Validation Exceptions] =
+        CALCULATE ( COUNTROWS ( 'Exception' ), 'Exception'[category] = "VALIDATION" )
+    MEASURE 'Open Invoice'[Open Invoice Count] =
+        COUNTROWS ( 'Open Invoice' )
+    MEASURE 'Open Invoice'[Customer Outstanding] =
+        SUM ( 'Open Invoice'[outstanding_usd] )
+
+    // ---- controls: the model must agree with the engine (all TRUE for a single run)
+    MEASURE 'Run'[Check Outstanding Ties] =
+        IF (
+            [Runs In Context] = 1,
+            SUM ( 'Open Invoice'[outstanding_cents] ) + 0 = SUM ( 'Run'[outstanding_cents] )
+        )
+    MEASURE 'Run'[Check Payment Exceptions Tie] =
+        IF (
+            [Runs In Context] = 1,
+            SUM ( 'Payment Exception'[payment_amount_cents] ) + 0
+                = SUM ( 'Run'[unmatched_payment_cents] )
+                    + SUM ( 'Run'[ambiguous_payment_cents] )
+                    + SUM ( 'Run'[blocked_payment_cents] )
+        )
+    MEASURE 'Run'[Check Bridge] =
+        IF (
+            [Runs In Context] = 1,
+            SUM ( 'Run'[net_difference_cents] ) = SUM ( 'Run'[explained_difference_cents] )
+        )
+    MEASURE 'Run'[Check Bridge Steps] =
+        IF (
+            [Runs In Context] = 1,
+            CALCULATE (
+                SUM ( 'Bridge Step'[signed_cents] ),
+                'Bridge Step'[step_kind] = "explains"
+            )
+                = SUM ( 'Run'[net_difference_cents] )
+        )
+    MEASURE 'Run'[Check Settled % Matches SQL] =
+        IF (
+            [Runs In Context] = 1,
+            ROUND ( [Settled %] * 100, 2 ) = SUM ( 'Run'[settled_invoice_pct] )
+        )
+
+// 1. Run-level KPIs: one row per run (expected_kpis.json "runs").
+EVALUATE
+SUMMARIZECOLUMNS (
+    'Run'[run_id],
+    'Run'[snapshot_label],
+    "Eligible Invoice Value", [Eligible Invoice Value],
+    "Settled Invoice Value", [Settled Invoice Value],
+    "Settled %", [Settled %],
+    "Outstanding Balance", [Outstanding Balance],
+    "Overpayments", [Overpayments],
+    "Net Difference", [Net Difference],
+    "Quarantined Rows", [Quarantined Rows],
+    "Arithmetic Status", [Arithmetic Status],
+    "Data Completeness", [Data Completeness],
+    "Payment Exception Count", [Payment Exception Count],
+    "Payment Exception Amount", [Payment Exception Amount],
+    "Exception Count", [Exception Count],
+    "Unresolved Exceptions", [Unresolved Exceptions],
+    "Validation Exceptions", [Validation Exceptions],
+    "Open Invoice Count", [Open Invoice Count]
+)
+ORDER BY 'Run'[run_id]
+
+// 2. Controls: every value must be TRUE.
+EVALUATE
+SUMMARIZECOLUMNS (
+    'Run'[run_id],
+    "Outstanding ties", [Check Outstanding Ties],
+    "Payment exceptions tie", [Check Payment Exceptions Tie],
+    "Bridge", [Check Bridge],
+    "Bridge steps", [Check Bridge Steps],
+    "Settled % matches SQL", [Check Settled % Matches SQL]
+)
+ORDER BY 'Run'[run_id]
+
+// 3. Customer outstanding per run (expected_kpis.json "customer_outstanding").
+EVALUATE
+SUMMARIZECOLUMNS (
+    'Run'[run_id],
+    'Customer'[customer_id],
+    "Customer Outstanding", [Customer Outstanding]
+)
+ORDER BY 'Run'[run_id], [Customer Outstanding] DESC, 'Customer'[customer_id]
