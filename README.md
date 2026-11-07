@@ -190,13 +190,14 @@ run-selection guidance are in [SQL reporting](docs/sql-reporting.md).
 
 ### Power BI demonstration
 
-[`powerbi/`](powerbi/) follows two synthetic month-end snapshots through to a Power BI
-semantic model: a deterministic pipeline (snapshot CSVs → reconciliation → scripted reviews →
-`rk_v1` → Parquet → model files), a model design with run-scoped composite keys and Fixed
-decimal money, and a DAX measure catalog with hand-calculated expected values. The data
-pipeline and model files are built and tested in CI. **The report itself has not been built
-yet** (it needs Power BI Desktop); [`powerbi/README.md`](powerbi/README.md) states exactly what
-is verified and what is not.
+[`powerbi/`](powerbi/) follows two synthetic month-end snapshots through to a working Power BI
+report (`RK.pbip`): a deterministic pipeline (snapshot CSVs → reconciliation → scripted reviews
+→ `rk_v1` → Parquet), a semantic model with run-scoped composite keys, Fixed decimal money and
+guarded DAX measures, and three report pages (overview, exceptions, data quality). The project
+is generated from tested sources; its DAX was executed in Power BI Desktop and matched the
+hand-calculated results (76/76 checks). See [`powerbi/README.md`](powerbi/README.md).
+
+![Power BI: Reconciliation Overview](powerbi/screenshots/1-reconciliation-overview.png)
 
 ## Features
 

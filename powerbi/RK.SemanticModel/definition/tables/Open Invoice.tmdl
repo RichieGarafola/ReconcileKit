@@ -1,0 +1,247 @@
+/// Invoices with an outstanding balance, one row per invoice per run.
+table 'Open Invoice'
+
+	/// Invoices with outstanding > 0
+	measure 'Open Invoice Count' =
+			IF ( [Runs In Context] = 1, COUNTROWS ( 'Open Invoice' ) )
+		formatString: #,0
+		displayFolder: Exceptions
+
+	/// Outstanding per customer
+	measure 'Customer Outstanding' =
+			IF ( [Runs In Context] = 1, SUM ( 'Open Invoice'[outstanding_usd] ) )
+		formatString: \$#,0.00;-\$#,0.00;\$#,0.00
+		displayFolder: Exceptions
+
+	column run_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: run_id
+
+		annotation SummarizationSetBy = User
+
+	column as_of_date
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		summarizeBy: none
+		sourceColumn: as_of_date
+
+		annotation SummarizationSetBy = User
+
+	column invoice_record_id
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: invoice_record_id
+
+		annotation SummarizationSetBy = User
+
+	column source_row
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: source_row
+
+		annotation SummarizationSetBy = User
+
+	column customer_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: customer_id
+
+		annotation SummarizationSetBy = User
+
+	column invoice_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: invoice_id
+
+		annotation SummarizationSetBy = User
+
+	column invoice_date
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		summarizeBy: none
+		sourceColumn: invoice_date
+
+		annotation SummarizationSetBy = User
+
+	column due_date
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		summarizeBy: none
+		sourceColumn: due_date
+
+		annotation SummarizationSetBy = User
+
+	column invoice_amount_cents
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: invoice_amount_cents
+
+		annotation SummarizationSetBy = User
+
+	column applied_payment_cents
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: applied_payment_cents
+
+		annotation SummarizationSetBy = User
+
+	column outstanding_cents
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: outstanding_cents
+
+		annotation SummarizationSetBy = User
+
+	column invoice_amount_usd
+		dataType: decimal
+		formatString: \$#,0.00;-\$#,0.00;\$#,0.00
+		summarizeBy: none
+		sourceColumn: invoice_amount_usd
+
+		annotation SummarizationSetBy = User
+
+	column applied_payment_usd
+		dataType: decimal
+		formatString: \$#,0.00;-\$#,0.00;\$#,0.00
+		summarizeBy: none
+		sourceColumn: applied_payment_usd
+
+		annotation SummarizationSetBy = User
+
+	column outstanding_usd
+		dataType: decimal
+		formatString: \$#,0.00;-\$#,0.00;\$#,0.00
+		summarizeBy: none
+		sourceColumn: outstanding_usd
+
+		annotation SummarizationSetBy = User
+
+	column status
+		dataType: string
+		summarizeBy: none
+		sourceColumn: status
+
+		annotation SummarizationSetBy = User
+
+	column rule_code
+		dataType: string
+		summarizeBy: none
+		sourceColumn: rule_code
+
+		annotation SummarizationSetBy = User
+
+	column applied_payment_count
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: applied_payment_count
+
+		annotation SummarizationSetBy = User
+
+	column is_overdue
+		dataType: boolean
+		summarizeBy: none
+		sourceColumn: is_overdue
+
+		annotation SummarizationSetBy = User
+
+	column days_overdue
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: days_overdue
+
+		annotation SummarizationSetBy = User
+
+	column aging_bucket
+		dataType: string
+		summarizeBy: none
+		sourceColumn: aging_bucket
+		sortByColumn: aging_order
+
+		annotation SummarizationSetBy = User
+
+	column exception_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: exception_id
+
+		annotation SummarizationSetBy = User
+
+	column current_disposition
+		dataType: string
+		summarizeBy: none
+		sourceColumn: current_disposition
+
+		annotation SummarizationSetBy = User
+
+	column run_invoice_key
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: run_invoice_key
+
+		annotation SummarizationSetBy = User
+
+	column run_exception_key
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: run_exception_key
+
+		annotation SummarizationSetBy = User
+
+	column aging_order
+		dataType: int64
+		formatString: 0
+		isHidden
+		summarizeBy: none
+		sourceColumn: aging_order
+
+		annotation SummarizationSetBy = User
+
+	partition 'Open Invoice' = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\open_invoice.parquet")),
+				    Typed = Table.TransformColumnTypes(
+				        Source,
+				        {
+				            {"run_id", type text},
+				            {"as_of_date", type date},
+				            {"invoice_record_id", type text},
+				            {"source_row", Int64.Type},
+				            {"customer_id", type text},
+				            {"invoice_id", type text},
+				            {"invoice_date", type date},
+				            {"due_date", type date},
+				            {"invoice_amount_cents", Int64.Type},
+				            {"applied_payment_cents", Int64.Type},
+				            {"outstanding_cents", Int64.Type},
+				            {"invoice_amount_usd", Currency.Type},
+				            {"applied_payment_usd", Currency.Type},
+				            {"outstanding_usd", Currency.Type},
+				            {"status", type text},
+				            {"rule_code", type text},
+				            {"applied_payment_count", Int64.Type},
+				            {"is_overdue", type logical},
+				            {"days_overdue", Int64.Type},
+				            {"aging_bucket", type text},
+				            {"exception_id", type text},
+				            {"current_disposition", type text},
+				            {"run_invoice_key", type text},
+				            {"run_exception_key", type text},
+				            {"aging_order", Int64.Type}
+				        }
+				    )
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

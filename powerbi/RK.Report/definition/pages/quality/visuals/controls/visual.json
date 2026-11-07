@@ -1,0 +1,270 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.13.0/schema.json",
+  "name": "controls",
+  "position": {
+    "x": 436,
+    "y": 238,
+    "z": 9000,
+    "height": 250,
+    "width": 400,
+    "tabOrder": 9000
+  },
+  "visual": {
+    "visualType": "multiRowCard",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Run"
+                    }
+                  },
+                  "Property": "Arithmetic Status"
+                }
+              },
+              "queryRef": "Run.Arithmetic Status",
+              "nativeQueryRef": "Arithmetic Status",
+              "displayName": "Engine invariants"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Run"
+                    }
+                  },
+                  "Property": "Check Outstanding Ties"
+                }
+              },
+              "queryRef": "Run.Check Outstanding Ties",
+              "nativeQueryRef": "Check Outstanding Ties",
+              "displayName": "Open items = O"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Run"
+                    }
+                  },
+                  "Property": "Check Payment Exceptions Tie"
+                }
+              },
+              "queryRef": "Run.Check Payment Exceptions Tie",
+              "nativeQueryRef": "Check Payment Exceptions Tie",
+              "displayName": "Exceptions = U+M+B"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Run"
+                    }
+                  },
+                  "Property": "Check Bridge"
+                }
+              },
+              "queryRef": "Run.Check Bridge",
+              "nativeQueryRef": "Check Bridge",
+              "displayName": "Net = explained"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Run"
+                    }
+                  },
+                  "Property": "Check Bridge Steps"
+                }
+              },
+              "queryRef": "Run.Check Bridge Steps",
+              "nativeQueryRef": "Check Bridge Steps",
+              "displayName": "Bridge steps tie"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Run"
+                    }
+                  },
+                  "Property": "Check Settled % Matches SQL"
+                }
+              },
+              "queryRef": "Run.Check Settled % Matches SQL",
+              "nativeQueryRef": "Check Settled % Matches SQL",
+              "displayName": "DAX % = SQL %"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "dataLabels": [
+        {
+          "properties": {
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "11D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "categoryLabels": [
+        {
+          "properties": {
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "9D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "card": [
+        {
+          "properties": {
+            "outlineStyle": {
+              "expr": {
+                "Literal": {
+                  "Value": "0D"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Controls (True = passes)'"
+                }
+              }
+            },
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "11D"
+                }
+              }
+            },
+            "fontColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#1F2A37'"
+                    }
+                  }
+                }
+              }
+            },
+            "bold": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "background": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "color": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#FFFFFF'"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "border": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "color": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#E3E8EF'"
+                    }
+                  }
+                }
+              }
+            },
+            "radius": {
+              "expr": {
+                "Literal": {
+                  "Value": "6D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "dropShadow": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

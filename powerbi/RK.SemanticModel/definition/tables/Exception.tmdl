@@ -1,0 +1,233 @@
+/// Review-queue exceptions with their latest disposition, one row per exception per run.
+table Exception
+
+	/// Queued exceptions
+	measure 'Exception Count' =
+			IF ( [Runs In Context] = 1, COUNTROWS ( 'Exception' ) )
+		formatString: #,0
+		displayFolder: Exceptions
+
+	/// Latest disposition ≠ RESOLVED_EXTERNALLY
+	measure 'Unresolved Exceptions' =
+			IF (
+			    [Runs In Context] = 1,
+			    CALCULATE ( COUNTROWS ( 'Exception' ), 'Exception'[is_resolved] = FALSE () )
+			)
+		formatString: #,0
+		displayFolder: Exceptions
+
+	/// No review event
+	measure 'Never Reviewed' =
+			IF (
+			    [Runs In Context] = 1,
+			    CALCULATE ( COUNTROWS ( 'Exception' ), 'Exception'[review_event_count] = 0 )
+			)
+		formatString: #,0
+		displayFolder: Exceptions
+
+	/// Category VALIDATION
+	measure 'Validation Exceptions' =
+			IF (
+			    [Runs In Context] = 1,
+			    CALCULATE ( COUNTROWS ( 'Exception' ), 'Exception'[category] = "VALIDATION" )
+			)
+		formatString: #,0
+		displayFolder: Exceptions
+
+	column run_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: run_id
+
+		annotation SummarizationSetBy = User
+
+	column exception_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: exception_id
+
+		annotation SummarizationSetBy = User
+
+	column category
+		dataType: string
+		summarizeBy: none
+		sourceColumn: category
+
+		annotation SummarizationSetBy = User
+
+	column rule_code
+		dataType: string
+		summarizeBy: none
+		sourceColumn: rule_code
+
+		annotation SummarizationSetBy = User
+
+	column severity
+		dataType: string
+		summarizeBy: none
+		sourceColumn: severity
+
+		annotation SummarizationSetBy = User
+
+	column classification
+		dataType: string
+		summarizeBy: none
+		sourceColumn: classification
+
+		annotation SummarizationSetBy = User
+
+	column customer_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: customer_id
+
+		annotation SummarizationSetBy = User
+
+	column invoice_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: invoice_id
+
+		annotation SummarizationSetBy = User
+
+	column payment_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: payment_id
+
+		annotation SummarizationSetBy = User
+
+	column source_refs
+		dataType: string
+		summarizeBy: none
+		sourceColumn: source_refs
+
+		annotation SummarizationSetBy = User
+
+	column record_ids
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: record_ids
+
+		annotation SummarizationSetBy = User
+
+	column amount_cents
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: amount_cents
+
+		annotation SummarizationSetBy = User
+
+	column amount_usd
+		dataType: decimal
+		formatString: \$#,0.00;-\$#,0.00;\$#,0.00
+		summarizeBy: none
+		sourceColumn: amount_usd
+
+		annotation SummarizationSetBy = User
+
+	column explanation
+		dataType: string
+		summarizeBy: none
+		sourceColumn: explanation
+
+		annotation SummarizationSetBy = User
+
+	column current_disposition
+		dataType: string
+		summarizeBy: none
+		sourceColumn: current_disposition
+
+		annotation SummarizationSetBy = User
+
+	column is_resolved
+		dataType: boolean
+		summarizeBy: none
+		sourceColumn: is_resolved
+
+		annotation SummarizationSetBy = User
+
+	column review_event_count
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: review_event_count
+
+		annotation SummarizationSetBy = User
+
+	column first_reviewed_at_utc
+		dataType: dateTime
+		formatString: yyyy-mm-dd hh:nn
+		summarizeBy: none
+		sourceColumn: first_reviewed_at_utc
+
+		annotation SummarizationSetBy = User
+
+	column latest_reviewed_at_utc
+		dataType: dateTime
+		formatString: yyyy-mm-dd hh:nn
+		summarizeBy: none
+		sourceColumn: latest_reviewed_at_utc
+
+		annotation SummarizationSetBy = User
+
+	column latest_reviewer
+		dataType: string
+		summarizeBy: none
+		sourceColumn: latest_reviewer
+
+		annotation SummarizationSetBy = User
+
+	column latest_note
+		dataType: string
+		summarizeBy: none
+		sourceColumn: latest_note
+
+		annotation SummarizationSetBy = User
+
+	column run_exception_key
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: run_exception_key
+
+		annotation SummarizationSetBy = User
+
+	partition Exception = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\exception.parquet")),
+				    Typed = Table.TransformColumnTypes(
+				        Source,
+				        {
+				            {"run_id", type text},
+				            {"exception_id", type text},
+				            {"category", type text},
+				            {"rule_code", type text},
+				            {"severity", type text},
+				            {"classification", type text},
+				            {"customer_id", type text},
+				            {"invoice_id", type text},
+				            {"payment_id", type text},
+				            {"source_refs", type text},
+				            {"record_ids", type text},
+				            {"amount_cents", Int64.Type},
+				            {"amount_usd", Currency.Type},
+				            {"explanation", type text},
+				            {"current_disposition", type text},
+				            {"is_resolved", type logical},
+				            {"review_event_count", Int64.Type},
+				            {"first_reviewed_at_utc", type datetime},
+				            {"latest_reviewed_at_utc", type datetime},
+				            {"latest_reviewer", type text},
+				            {"latest_note", type text},
+				            {"run_exception_key", type text}
+				        }
+				    )
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

@@ -1,17 +1,16 @@
 // ReconcileKit Power BI measure catalog.
 //
-// NOT YET EXECUTED: this file has not been run in a DAX engine. Static checks
-// (tests/test_powerbi_demo.py) confirm every 'Table'[column] reference exists in the model
-// files. The expected results come from the same definitions computed in DuckDB SQL
-// (powerbi/dataset/expected_kpis.json) and from hand calculations (powerbi/model/model.md).
+// The MEASURE definitions below are the model's measures: powerbi/scripts/build_pbip.py
+// copies them into RK.SemanticModel. This whole file (DEFINE + EVALUATE queries) is executed
+// against the model in Power BI Desktop by powerbi/scripts/validate_model.py, which compares
+// the results with powerbi/dataset/expected_kpis.json (SQL) and the hand calculations in
+// powerbi/model/model.md; see powerbi/validation/desktop-validation.md.
 //
-// How to use: after building the model (powerbi/README.md), open DAX query view, paste this
-// file, and run it. Each EVALUATE should match expected_kpis.json. The same MEASURE lines
-// are the definitions to add to the model.
+// To run it by hand: open RK.pbip, refresh, open DAX query view, paste this file, run.
 //
-// Rules: run-level KPIs read the engine totals on 'Run' and return BLANK unless exactly one
-// run is in filter context. Fact-table measures (Payment Exception, Exception, Open Invoice)
-// must be used with a single run selected; the report applies a single-select run slicer.
+// Rules: run-level KPIs read the engine totals on 'Run'. Every measure that aggregates (run
+// totals and fact tables alike) returns BLANK unless exactly one run is in filter context, so
+// no visual can add two snapshots together, whatever the slicer state.
 
 DEFINE
     // ---- run context guard
@@ -44,22 +43,34 @@ DEFINE
         SELECTEDVALUE ( 'Run'[data_completeness], "Select one run" )
 
     // ---- exception exposure (fact tables; filter by customer, status, category)
+    // Also guarded: filters on a fact table do not reach 'Run' (single-direction
+    // relationships), so [Runs In Context] reflects the snapshot selection only. Without the
+    // guard, an unfiltered visual would add both snapshots together.
     MEASURE 'Payment Exception'[Payment Exception Count] =
-        COUNTROWS ( 'Payment Exception' )
+        IF ( [Runs In Context] = 1, COUNTROWS ( 'Payment Exception' ) )
     MEASURE 'Payment Exception'[Payment Exception Amount] =
-        SUM ( 'Payment Exception'[payment_amount_usd] )
+        IF ( [Runs In Context] = 1, SUM ( 'Payment Exception'[payment_amount_usd] ) )
     MEASURE 'Exception'[Exception Count] =
-        COUNTROWS ( 'Exception' )
+        IF ( [Runs In Context] = 1, COUNTROWS ( 'Exception' ) )
     MEASURE 'Exception'[Unresolved Exceptions] =
-        CALCULATE ( COUNTROWS ( 'Exception' ), 'Exception'[is_resolved] = FALSE () )
+        IF (
+            [Runs In Context] = 1,
+            CALCULATE ( COUNTROWS ( 'Exception' ), 'Exception'[is_resolved] = FALSE () )
+        )
     MEASURE 'Exception'[Never Reviewed] =
-        CALCULATE ( COUNTROWS ( 'Exception' ), 'Exception'[review_event_count] = 0 )
+        IF (
+            [Runs In Context] = 1,
+            CALCULATE ( COUNTROWS ( 'Exception' ), 'Exception'[review_event_count] = 0 )
+        )
     MEASURE 'Exception'[Validation Exceptions] =
-        CALCULATE ( COUNTROWS ( 'Exception' ), 'Exception'[category] = "VALIDATION" )
+        IF (
+            [Runs In Context] = 1,
+            CALCULATE ( COUNTROWS ( 'Exception' ), 'Exception'[category] = "VALIDATION" )
+        )
     MEASURE 'Open Invoice'[Open Invoice Count] =
-        COUNTROWS ( 'Open Invoice' )
+        IF ( [Runs In Context] = 1, COUNTROWS ( 'Open Invoice' ) )
     MEASURE 'Open Invoice'[Customer Outstanding] =
-        SUM ( 'Open Invoice'[outstanding_usd] )
+        IF ( [Runs In Context] = 1, SUM ( 'Open Invoice'[outstanding_usd] ) )
 
     // ---- controls: the model must agree with the engine (all TRUE for a single run)
     MEASURE 'Run'[Check Outstanding Ties] =
@@ -94,6 +105,51 @@ DEFINE
             [Runs In Context] = 1,
             ROUND ( [Settled %] * 100, 2 ) = SUM ( 'Run'[settled_invoice_pct] )
         )
+    MEASURE 'Run'[Controls Passed] =
+        IF (
+            [Runs In Context] = 1,
+            INT ( [Check Outstanding Ties] ) + INT ( [Check Payment Exceptions Tie] )
+                + INT ( [Check Bridge] ) + INT ( [Check Bridge Steps] )
+                + INT ( [Check Settled % Matches SQL] )
+        )
+    MEASURE 'Run'[Controls Status] =
+        IF (
+            [Runs In Context] = 1,
+            IF (
+                [Controls Passed] = 5,
+                "All 5 controls pass",
+                [Controls Passed] & " of 5 controls pass"
+            ),
+            "Select one snapshot"
+        )
+
+    // ---- display helpers for the report
+    MEASURE 'Run'[Selected Snapshot] =
+        SELECTEDVALUE ( 'Run'[snapshot_label], "Select one snapshot" )
+    MEASURE 'Run'[Run Banner] =
+        IF (
+            [Runs In Context] = 1,
+            SELECTEDVALUE ( 'Run'[run_id] ) & "  ·  as of "
+                & FORMAT ( SELECTEDVALUE ( 'Run'[as_of_date] ), "yyyy-mm-dd" ) & "  ·  "
+                & [Data Completeness] & " (" & [Quarantined Rows] & " rows quarantined)  ·  "
+                & "Arithmetic " & [Arithmetic Status],
+            "Select one snapshot to see run-level figures"
+        )
+    MEASURE 'Run'[Run Provenance] =
+        IF (
+            [Runs In Context] = 1,
+            "Stored " & FORMAT ( SELECTEDVALUE ( 'Run'[created_at_utc] ), "yyyy-mm-dd hh:nn" )
+                & " UTC  ·  engine " & SELECTEDVALUE ( 'Run'[engine_version] )
+                & "  ·  " & SELECTEDVALUE ( 'Run'[rule_version] ),
+            "Select one snapshot"
+        )
+    // First 16 hex digits of the input file hashes (the full SHA-256 is in 'Run').
+    MEASURE 'Run'[Invoice File Hash] =
+        IF ( [Runs In Context] = 1, LEFT ( SELECTEDVALUE ( 'Run'[invoice_sha256] ), 16 ) & "…" )
+    MEASURE 'Run'[Payment File Hash] =
+        IF ( [Runs In Context] = 1, LEFT ( SELECTEDVALUE ( 'Run'[payment_sha256] ), 16 ) & "…" )
+    MEASURE 'Bridge Step'[Bridge Amount] =
+        IF ( [Runs In Context] = 1, SUM ( 'Bridge Step'[signed_usd] ) )
 
 // 1. Run-level KPIs: one row per run (expected_kpis.json "runs").
 EVALUATE
@@ -126,7 +182,8 @@ SUMMARIZECOLUMNS (
     "Payment exceptions tie", [Check Payment Exceptions Tie],
     "Bridge", [Check Bridge],
     "Bridge steps", [Check Bridge Steps],
-    "Settled % matches SQL", [Check Settled % Matches SQL]
+    "Settled % matches SQL", [Check Settled % Matches SQL],
+    "Controls passed", [Controls Passed]
 )
 ORDER BY 'Run'[run_id]
 

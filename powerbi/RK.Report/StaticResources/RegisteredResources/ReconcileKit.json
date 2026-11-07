@@ -1,0 +1,41 @@
+{
+  "name": "ReconcileKit",
+  "dataColors": [
+    "#2B6CB0",
+    "#DD6B20",
+    "#38A169",
+    "#805AD5",
+    "#D53F8C",
+    "#718096",
+    "#319795",
+    "#B7791F"
+  ],
+  "foreground": "#1F2A37",
+  "foregroundNeutralSecondary": "#52606D",
+  "background": "#FFFFFF",
+  "backgroundLight": "#F5F7FA",
+  "tableAccent": "#2B6CB0",
+  "good": "#38A169",
+  "neutral": "#B7791F",
+  "bad": "#C53030",
+  "maximum": "#2B6CB0",
+  "center": "#E2E8F0",
+  "minimum": "#EDF2F7",
+  "textClasses": {
+    "label": {
+      "fontFace": "Segoe UI",
+      "fontSize": 10,
+      "color": "#334E68"
+    },
+    "title": {
+      "fontFace": "Segoe UI Semibold",
+      "fontSize": 11,
+      "color": "#1F2A37"
+    },
+    "callout": {
+      "fontFace": "Segoe UI Semibold",
+      "fontSize": 22,
+      "color": "#1F2A37"
+    }
+  }
+}

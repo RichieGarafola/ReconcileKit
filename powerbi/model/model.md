@@ -105,19 +105,27 @@ yet** (see the README).
 | `Quarantined Rows` | Invoice + payment rows excluded by validation | `Run[quarantined_*_rows]` | one run | 12 | 7 | as above | guarded |
 | `Arithmetic Status` | All three engine invariants | `Run[arithmetic_status]` | one run | PASS | PASS | "Select one run" | — |
 | `Data Completeness` | Any rows quarantined? | `Run[data_completeness]` | one run | INCOMPLETE | INCOMPLETE | "Select one run" | — |
-| `Payment Exception Count` | Eligible payments not applied | `Payment Exception` rows | one run; status, customer | 6 | 4 | BLANK when none | sums across runs if several are selected: single-select slicer |
-| `Payment Exception Amount` | U + M + B | `Payment Exception[payment_amount_usd]` | as above | 2,860.50 | 1,325.00 | BLANK when none | as above |
-| `Exception Count` | Queued exceptions | `Exception` rows | one run; category, severity | 19 | 14 | BLANK when none | as above |
-| `Unresolved Exceptions` | Latest disposition ≠ RESOLVED_EXTERNALLY | `Exception[is_resolved]` | as above | 17 | 14 | BLANK when none | as above |
-| `Never Reviewed` | No review event | `Exception[review_event_count]` | as above | 14 | 12 | BLANK when none | as above |
-| `Validation Exceptions` | Category VALIDATION | `Exception[category]` | as above; `rule_code` | 9 | 5 | BLANK when none | as above |
-| `Open Invoice Count` | Invoices with outstanding > 0 | `Open Invoice` rows | one run; customer, aging | 3 | 4 | BLANK when none | as above |
-| `Customer Outstanding` | Outstanding per customer | `Open Invoice[outstanding_usd]` | one run; customer | C 975.50 · B 300.00 · D 300.00 | A 800.00 · H 640.00 · F 250.00 · G 150.00 | BLANK for customers with nothing open | as above |
+| `Payment Exception Count` | Eligible payments not applied | `Payment Exception` rows | one run; status, customer | 6 | 4 | BLANK unless one run; BLANK when none | guarded |
+| `Payment Exception Amount` | U + M + B | `Payment Exception[payment_amount_usd]` | as above | 2,860.50 | 1,325.00 | BLANK unless one run; BLANK when none | guarded |
+| `Exception Count` | Queued exceptions | `Exception` rows | one run; category, severity | 19 | 14 | BLANK unless one run; BLANK when none | guarded |
+| `Unresolved Exceptions` | Latest disposition ≠ RESOLVED_EXTERNALLY | `Exception[is_resolved]` | as above | 17 | 14 | BLANK unless one run; BLANK when none | guarded |
+| `Never Reviewed` | No review event | `Exception[review_event_count]` | as above | 14 | 12 | BLANK unless one run; BLANK when none | guarded |
+| `Validation Exceptions` | Category VALIDATION | `Exception[category]` | as above; `rule_code` | 9 | 5 | BLANK unless one run; BLANK when none | guarded |
+| `Open Invoice Count` | Invoices with outstanding > 0 | `Open Invoice` rows | one run; customer, aging | 3 | 4 | BLANK unless one run; BLANK when none | guarded |
+| `Customer Outstanding` | Outstanding per customer | `Open Invoice[outstanding_usd]` | one run; customer | C 975.50 · B 300.00 · D 300.00 | A 800.00 · H 640.00 · F 250.00 · G 150.00 | BLANK unless one run; BLANK for customers with nothing open | guarded |
 | `Check Outstanding Ties` | Σ open items = engine O | `Open Invoice[outstanding_cents]`, `Run[outstanding_cents]` | one run | TRUE | TRUE | BLANK unless one run | — |
 | `Check Payment Exceptions Tie` | Σ payment exceptions = U + M + B | `Payment Exception[payment_amount_cents]`, `Run[*_payment_cents]` | one run | TRUE | TRUE | as above | — |
 | `Check Bridge` | I − P = O − X − U − M − B | `Run[net_difference_cents]`, `Run[explained_difference_cents]` | one run | TRUE | TRUE | as above | — |
 | `Check Bridge Steps` | Σ explaining bridge steps = net difference | `Bridge Step[signed_cents]` | one run | TRUE | TRUE | as above | — |
 | `Check Settled % Matches SQL` | DAX ratio, rounded, equals the SQL value | `Run[settled_invoice_pct]` | one run | TRUE | TRUE | as above | — |
+| `Controls Passed` | How many of the five checks above are TRUE | the check measures | one run | 5 | 5 | BLANK unless one run | — |
+| `Controls Status` | "All 5 controls pass", or "n of 5 controls pass" | `Controls Passed` | one run | All 5 controls pass | All 5 controls pass | "Select one snapshot" | — |
+| `Selected Snapshot` | Label of the selected snapshot | `Run[snapshot_label]` | one run | 2026-03 baseline | 2026-04 follow-up | "Select one snapshot" | — |
+| `Run Banner` | Run ID, as-of date, completeness, quarantined rows, arithmetic status | `Run` | one run | text | text | prompt to select a snapshot | — |
+| `Run Provenance` | Storage time, engine version, and rule version of the run | `Run[created_at_utc]`, `Run[engine_version]`, `Run[rule_version]` | one run | Stored 2026-04-01 08:00 UTC · engine 0.1.0 · rules-v1 | Stored 2026-05-01 08:00 UTC · engine 0.1.0 · rules-v1 | "Select one snapshot" | — |
+| `Invoice File Hash` | First 16 hex digits of the invoice file SHA-256, for display | `Run[invoice_sha256]` | one run | c9cb41eca9910362… | 654bcc10a4ba49ba… | BLANK unless one run | — |
+| `Payment File Hash` | First 16 hex digits of the payment file SHA-256, for display | `Run[payment_sha256]` | one run | b2715151c1218823… | 42857510ec53ce92… | BLANK unless one run | — |
+| `Bridge Amount` | Signed bridge line (waterfall value) | `Bridge Step[signed_usd]` | one run; step | O 1,575.50 · X −50.00 · U −1,660.50 · M −1,000.00 · B −200.00 | O 1,840.00 · X −110.00 · U −1,325.00 · M 0.00 · B 0.00 | BLANK unless one run | guarded |
 
 `Never Reviewed`: 19 − 5 reviewed = 14 (March); 14 − 2 = 12 (April).
 

@@ -1,0 +1,207 @@
+/// Eligible payments that were not applied, one row per payment per run.
+table 'Payment Exception'
+
+	/// Eligible payments not applied
+	measure 'Payment Exception Count' =
+			IF ( [Runs In Context] = 1, COUNTROWS ( 'Payment Exception' ) )
+		formatString: #,0
+		displayFolder: Exceptions
+
+	/// U + M + B
+	measure 'Payment Exception Amount' =
+			IF ( [Runs In Context] = 1, SUM ( 'Payment Exception'[payment_amount_usd] ) )
+		formatString: \$#,0.00;-\$#,0.00;\$#,0.00
+		displayFolder: Exceptions
+
+	column run_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: run_id
+
+		annotation SummarizationSetBy = User
+
+	column as_of_date
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		summarizeBy: none
+		sourceColumn: as_of_date
+
+		annotation SummarizationSetBy = User
+
+	column payment_record_id
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: payment_record_id
+
+		annotation SummarizationSetBy = User
+
+	column source_row
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: source_row
+
+		annotation SummarizationSetBy = User
+
+	column payment_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: payment_id
+
+		annotation SummarizationSetBy = User
+
+	column customer_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: customer_id
+
+		annotation SummarizationSetBy = User
+
+	column invoice_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: invoice_id
+
+		annotation SummarizationSetBy = User
+
+	column invoice_id_raw
+		dataType: string
+		summarizeBy: none
+		sourceColumn: invoice_id_raw
+
+		annotation SummarizationSetBy = User
+
+	column payment_date
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		summarizeBy: none
+		sourceColumn: payment_date
+
+		annotation SummarizationSetBy = User
+
+	column payment_amount_cents
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: payment_amount_cents
+
+		annotation SummarizationSetBy = User
+
+	column payment_amount_usd
+		dataType: decimal
+		formatString: \$#,0.00;-\$#,0.00;\$#,0.00
+		summarizeBy: none
+		sourceColumn: payment_amount_usd
+
+		annotation SummarizationSetBy = User
+
+	column status
+		dataType: string
+		summarizeBy: none
+		sourceColumn: status
+
+		annotation SummarizationSetBy = User
+
+	column rule_code
+		dataType: string
+		summarizeBy: none
+		sourceColumn: rule_code
+
+		annotation SummarizationSetBy = User
+
+	column explanation
+		dataType: string
+		summarizeBy: none
+		sourceColumn: explanation
+
+		annotation SummarizationSetBy = User
+
+	column related_invoice_record_ids
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: related_invoice_record_ids
+
+		annotation SummarizationSetBy = User
+
+	column exception_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: exception_id
+
+		annotation SummarizationSetBy = User
+
+	column current_disposition
+		dataType: string
+		summarizeBy: none
+		sourceColumn: current_disposition
+
+		annotation SummarizationSetBy = User
+
+	column is_resolved
+		dataType: boolean
+		summarizeBy: none
+		sourceColumn: is_resolved
+
+		annotation SummarizationSetBy = User
+
+	column latest_reviewed_at_utc
+		dataType: dateTime
+		formatString: yyyy-mm-dd hh:nn
+		summarizeBy: none
+		sourceColumn: latest_reviewed_at_utc
+
+		annotation SummarizationSetBy = User
+
+	column run_payment_key
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: run_payment_key
+
+		annotation SummarizationSetBy = User
+
+	column run_exception_key
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: run_exception_key
+
+		annotation SummarizationSetBy = User
+
+	partition 'Payment Exception' = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\payment_exception.parquet")),
+				    Typed = Table.TransformColumnTypes(
+				        Source,
+				        {
+				            {"run_id", type text},
+				            {"as_of_date", type date},
+				            {"payment_record_id", type text},
+				            {"source_row", Int64.Type},
+				            {"payment_id", type text},
+				            {"customer_id", type text},
+				            {"invoice_id", type text},
+				            {"invoice_id_raw", type text},
+				            {"payment_date", type date},
+				            {"payment_amount_cents", Int64.Type},
+				            {"payment_amount_usd", Currency.Type},
+				            {"status", type text},
+				            {"rule_code", type text},
+				            {"explanation", type text},
+				            {"related_invoice_record_ids", type text},
+				            {"exception_id", type text},
+				            {"current_disposition", type text},
+				            {"is_resolved", type logical},
+				            {"latest_reviewed_at_utc", type datetime},
+				            {"run_payment_key", type text},
+				            {"run_exception_key", type text}
+				        }
+				    )
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

@@ -1,15 +1,19 @@
 # ReconcileKit: Power BI demonstration
 
-A month-end reconciliation, followed through to a reporting model. Two synthetic snapshots of
-an invoice register and a payment ledger are validated and reconciled by ReconcileKit, stored
-in DuckDB, published through the read-only `rk_v1` SQL views, exported to Parquet, and modelled
-for Power BI with exact money types and a DAX measure catalog.
+A month-end reconciliation, followed through to a working Power BI report. Two synthetic
+snapshots of an invoice register and a payment ledger are validated and reconciled by
+ReconcileKit, stored in DuckDB, published through the read-only `rk_v1` SQL views, exported to
+Parquet, and modelled in a Power BI project (`RK.pbip`) with exact money types, a guarded DAX
+measure catalog, and three report pages.
 
-> **Status: the data pipeline, model files, and checks are complete and tested. The Power BI
-> report itself has not been built yet,** because Power BI Desktop was not available in the
-> environment where this was developed. Nothing here claims that a dashboard works, and there
-> are no screenshots yet. See [Verification status](#verification-status) and
-> [Building the report](#building-the-report-in-power-bi-desktop).
+![Reconciliation Overview](screenshots/1-reconciliation-overview.png)
+
+**Status:** built and validated in Power BI Desktop 2.159 (October 2026). The project loads,
+refreshes from the committed Parquet files, and passes **76 of 76** checks run against the
+Desktop engine. Those checks cover row counts, Fixed decimal types, and every KPI, control,
+and customer balance compared with the expected results; see
+[`validation/desktop-validation.md`](validation/desktop-validation.md). The screenshots were
+captured from that running report.
 
 ## The reporting problem
 
@@ -19,8 +23,8 @@ items to chase, auditors want to know what was excluded and why. Spreadsheet-bui
 recompute those figures independently, mix months together, and drop the rows that failed
 validation without saying so.
 
-This demonstration keeps one definition of every number. The engine's totals are the source of
-truth; the report reads them rather than re-deriving them, shows data completeness next to every
+This report keeps one definition of every number. The engine's totals are the source of truth;
+the report reads them rather than re-deriving them, shows data completeness next to every
 percentage, never adds two reconciliation runs together, and includes controls that prove the
 detail rows add up to the engine totals.
 
@@ -34,37 +38,77 @@ flowchart LR
     C --> D[rk_v1 SQL views<br/>read-only, versioned]
     D --> F[Parquet per run<br/>reconcilekit parquet]
     F --> G[Model files<br/>keys, bridge, customers<br/>DuckDB SQL, tested]
-    G --> H[Power BI semantic model<br/>Fixed decimal money,<br/>single-run measures]
-    H --> I[Report: Overview ·<br/>Exceptions · Data quality]
+    G --> H[RK.SemanticModel<br/>TMDL: Fixed decimal money,<br/>guarded measures]
+    H --> I[RK.Report<br/>PBIR: 3 pages]
+    H -. DAX via ADOMD.NET .-> V[validate_model.py<br/>76 checks]
 ```
 
-Everything up to and including **G** is built by one script and checked in CI. **H** and **I**
-need Power BI Desktop.
-
-## Verification status
-
-| Artifact | Status | How it is verified |
+| Step | Built by | Verified by |
 |---|---|---|
-| Snapshot data, review events (`dataset/source/`) | ✅ verified | Hand calculation in [`model/model.md`](model/model.md); engine results equal it |
-| Per-run `rk_v1` exports (`dataset/rk_v1/`) | ✅ verified | Built by `reconcilekit parquet`; byte-identical on rebuild |
-| Model files (`dataset/model/`) | ✅ verified | Schema, keys, exact money, run isolation, control totals: `tests/test_powerbi_demo.py` |
-| Expected KPIs (`dataset/expected_kpis.json`) | ✅ verified | SQL over the model files, asserted against hand-calculated constants |
-| Power Query script (`model/power-query.m`) | ⚠️ not executed | Generated from the Parquet schemas; a test checks every column and type |
-| DAX measures (`model/measures.dax`) | ⚠️ not executed | A test checks every table, column, and measure reference exists; results not yet produced by a DAX engine |
-| `.pbip` report and semantic model | ⏳ not built | Requires Power BI Desktop |
-| Screenshots | ⏳ none | Will be captured only from the working report |
+| Snapshots → model Parquet files | `scripts/build_dataset.py` | `tests/test_powerbi_demo.py` (CI): hand-calculated totals, keys, exact money, isolation, controls |
+| Semantic model + report (`RK.pbip`) | `scripts/build_pbip.py` generates TMDL and PBIR from the tested sources | `tests/test_powerbi_pbip.py` (CI): generator drift, every report field exists in the model, Fixed decimal types, slicer and interaction rules; Microsoft's JSON schemas (offline, during development) |
+| Model in Power BI | Power BI Desktop opens `RK.pbip` and refreshes | `scripts/validate_model.py` runs `model/measures.dax` in the Desktop engine (76/76); CI checks that the report's input hashes still match |
 
-## Reproduce the data
+## The report
 
-```bash
-python -m pip install -c requirements-lock.txt -e ".[dev]"   # from the repository root
-python powerbi/scripts/build_dataset.py           # rebuilds powerbi/dataset/ and model/power-query.m
-python powerbi/scripts/build_dataset.py --check   # exit 1 if the committed files differ
-pytest tests/test_powerbi_demo.py
-```
+Every page has a single-select **Snapshot** slicer, synced across pages and defaulting to the
+latest snapshot, and a banner with the run ID, as-of date, data completeness, and arithmetic
+status. Every aggregating measure returns BLANK unless exactly one snapshot is selected, so no
+visual can add two months together.
 
-The build is deterministic (fixed inputs, as-of dates, run creation times, and review timestamps),
-and the Parquet files are byte-identical across rebuilds.
+**1. Reconciliation Overview** (above): eligible invoices, settled invoice value, settled
+share, outstanding balance, unapplied payments, and unresolved exceptions. A waterfall shows how
+outstanding balances, overpayments, and unapplied payments explain the net difference between
+invoices and payments ($405.00 in April). Outstanding is broken down by aging bucket, and a
+side-by-side table compares the two snapshots. That table deliberately ignores the slicer: two
+points are compared, not presented as a trend.
+
+![Exception Management](screenshots/2-exception-management.png)
+
+**2. Exception Management**: unapplied payments by reason, outstanding by customer, the review
+queue by category and current disposition, and the payment exceptions to investigate, with
+the reference as received and the engine's explanation.
+
+![Data Quality and Auditability](screenshots/3-data-quality-auditability.png)
+
+**3. Data Quality and Auditability**: quarantined rows, validation exceptions by rule, five
+model-to-engine controls, the full reconciliation bridge, the latest review on each reviewed
+exception (notes wrap in full), and run provenance: storage time, engine and rule version, and
+the first 16 hex digits of each input file's SHA-256. The run ID is in the banner, and the full
+hashes are in the model and in `validation/desktop-validation.md`.
+
+## Results
+
+Produced by the DAX measures in Power BI Desktop. They are equal to the SQL in
+`dataset/expected_kpis.json` and to the hand calculation in [`model/model.md`](model/model.md).
+Amounts are USD.
+
+| Snapshot | Run | Eligible invoices | Settled value | Settled % | Outstanding | Payment exceptions (count / amount) | Exceptions | Unresolved | Quarantined rows | Arithmetic |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| 2026-03 baseline | `RUN-2e17cda32757cc29` | 7585.75 | 6010.25 | 79.23% | 1575.50 | 6 / 2860.50 | 19 | 17 | 12 | PASS |
+| 2026-04 follow-up | `RUN-f1b80b3097639ecd` | 11625.75 | 9785.75 | 84.17% | 1840.00 | 4 / 1325.00 | 14 | 14 | 7 | PASS |
+
+Both runs are *incomplete* (some rows quarantined), and the report says so beside every
+percentage. Every item open in March (INV-1003, INV-1005, INV-1007) was settled in April; the
+April balance of 1,840.00 is a corrected invoice (INV-1011), one that became eligible
+(INV-1014), and two new invoices (INV-1015, INV-1016). The two snapshots are compared side by
+side; two points are not presented as a trend.
+
+## Semantic model
+
+Six tables. `Run` carries the engine totals; `Open Invoice`, `Payment Exception`, and
+`Exception` are run-scoped detail with composite keys (`run_id|record`), because IDs such as
+`EX-0001` repeat in every run. `Customer` and `Bridge Step` are derived. All seven relationships
+are many-to-one, single-direction, from `Run` and `Customer`, with no fact-to-fact relationships.
+Money columns are **Fixed decimal** (confirmed in the engine); cents are whole numbers; implicit
+measures are disabled. The model has 31 measures, defined in
+[`model/measures.dax`](model/measures.dax) with descriptions and expected values in
+[`model/model.md`](model/model.md).
+
+Double counting is prevented in three ways. Run-level KPIs come only from `Run`. Every
+aggregating measure is guarded by `[Runs In Context] = 1`. Exception amounts are never summed
+across categories, because they mean different things in each. Five control measures check
+that the detail tables tie to the engine totals ("All 5 controls pass").
 
 ## The synthetic data
 
@@ -93,97 +137,69 @@ five exceptions, ending with two resolved, two acknowledged, and one under inves
 April events, both under investigation. Reviews belong to their run, so the April run starts
 with none of the March dispositions.
 
-## Results the report should show
+## Open, refresh, and validate it yourself
 
-Computed from the model files with the measure definitions, and equal to the hand calculation.
-Amounts are USD.
+Prerequisites: Windows and [Power BI Desktop](https://powerbi.microsoft.com/desktop/) (free).
+Clone **outside OneDrive or SharePoint-synced folders**: Power BI projects cannot be saved
+directly to OneDrive. Keep the path short, because Windows limits paths to 260 characters.
 
-| Snapshot | Run | Eligible invoices | Settled value | Settled % | Outstanding | Payment exceptions (count / amount) | Exceptions | Unresolved | Quarantined rows | Arithmetic |
-|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
-| 2026-03 baseline | `RUN-2e17cda32757cc29` | 7585.75 | 6010.25 | 79.23% | 1575.50 | 6 / 2860.50 | 19 | 17 | 12 | PASS |
-| 2026-04 follow-up | `RUN-f1b80b3097639ecd` | 11625.75 | 9785.75 | 84.17% | 1840.00 | 4 / 1325.00 | 14 | 14 | 7 | PASS |
+1. Clone to `C:\dev\ReconcileKit`, which is the default of the `DataFolder` parameter.
+   Elsewhere, change the parameter after opening (Transform data → Manage parameters).
+2. Open `powerbi\RK.pbip` in Power BI Desktop and select **Refresh**. The project ships without
+   a data cache, so it opens empty until refreshed.
+3. Optional, automated validation (developer tooling, not ReconcileKit dependencies):
+   `pip install pythonnet duckdb`. Then put `Microsoft.AnalysisServices.AdomdClient.dll` and
+   the TOM DLLs (`Microsoft.AnalysisServices.Tabular`, `.Core`, `Microsoft.AnalysisServices`)
+   from Microsoft's NuGet packages `Microsoft.AnalysisServices.AdomdClient.retail.amd64` and
+   `Microsoft.AnalysisServices.retail.amd64` (`lib/net45`) in a folder, and run:
 
-Both runs are *incomplete* (some rows quarantined), and the report says so beside every
-percentage. Every item open in March (INV-1003, INV-1005, INV-1007) was settled in April; the
-April balance of 1,840.00 is a corrected invoice (INV-1011), one that became eligible
-(INV-1014), and two new invoices (INV-1015, INV-1016). The two snapshots are compared side by
-side; two points are not presented as a trend.
+   ```bash
+   python powerbi/scripts/validate_model.py --dll-dir C:\path\to\dlls --refresh
+   ```
 
-## Semantic model
+To rebuild from scratch:
 
-Six tables. `Run` carries the engine totals; `Open Invoice`, `Payment Exception`, and
-`Exception` are run-scoped detail with composite keys (`run_id|record`), because IDs such as
-`EX-0001` repeat in every run. `Customer` and `Bridge Step` are derived. All relationships are
-many-to-one, single-direction, from `Run` and `Customer`, with no fact-to-fact relationships.
-Money is typed **Fixed decimal**; cents are whole numbers. Details, the relationship diagram,
-and the full measure catalog with expected values are in [`model/model.md`](model/model.md).
+```bash
+python -m pip install -c requirements-lock.txt -e ".[dev]"   # repository root
+python powerbi/scripts/build_dataset.py    # dataset/ and model/power-query.m
+python powerbi/scripts/build_pbip.py       # RK.pbip, RK.SemanticModel, RK.Report
+pytest tests/test_powerbi_demo.py tests/test_powerbi_pbip.py
+```
 
-Double counting is prevented by three rules: run-level KPIs come only from `Run`; they return
-BLANK unless exactly one run is selected; and exception amounts are never summed across
-categories (they mean different things). Five control measures check that the detail tables tie
-to the engine totals.
+**Edit through the generator.** The project files are generated from `measures.dax`,
+`model.md`, the Parquet schemas, and `build_pbip.py`, and CI fails if they drift. Change those
+sources and regenerate.
 
-## Report design (to be built)
+**Saving from Desktop works.** The generated project was saved once through Power BI Desktop's
+normal Save, in an isolated copy, then reopened, refreshed, and revalidated (76/76). Desktop
+rewrote every file in its own canonical form:
 
-Every page has a single-select **snapshot** slicer (default: `Run[is_report_default]`) and a
-banner showing *data completeness* and *arithmetic status*.
+- CRLF line endings;
+- random `lineageTag` GUIDs;
+- compatibility level 1600 → 1606;
+- newer PBIR schema stamps and single-line measure formatting;
+- housekeeping files such as `.platform`, `cultures/en-US.tmdl`, and `diagramLayout.json`.
 
-1. **Reconciliation Overview**: KPI cards (eligible invoices, settled value, settled %,
-   outstanding, payment exceptions, unresolved exceptions); bridge waterfall from `Bridge Step`
-   (eligible invoices − eligible payments, explained by outstanding, overpayments, unmatched,
-   ambiguous, blocked); outstanding by aging bucket; a two-snapshot comparison table (not a
-   trend line).
-2. **Exception Management**: unapplied payments by status and rule; customer outstanding;
-   exceptions by category × current disposition; a payment-exception detail table (reference as
-   received, amount, rule, explanation); drill-through to one exception.
-3. **Data Quality and Auditability**: quarantined rows and validation exceptions by rule code;
-   the three engine invariants and the five model controls as a pass/fail table; the bridge in
-   cents and dollars; review state (never reviewed / open / acknowledged / investigating /
-   resolved) with first and latest review times; traceability (run ID, input SHA-256s, engine
-   and rule version, as-of date).
-
-**Not shown, because `rk_v1` does not provide it:** a review-event timeline (the contract
-exposes only the first and latest review per exception) and field-level validation detail (the
-field name and raw value are stored but not in `rk_v1`). Validation is shown by rule code and
-source rows instead.
-
-## Building the report in Power BI Desktop
-
-Prerequisites: Windows, [Power BI Desktop](https://powerbi.microsoft.com/desktop/) (free).
-Clone the repository **outside OneDrive or SharePoint-synced folders** (for example
-`C:\dev\ReconcileKit`); Power BI projects cannot be saved directly to OneDrive, and synced folders
-can cause failed saves. Keep the path short: Windows limits project file paths to 260 characters.
-
-1. **Data.** The committed files are ready to use. To rebuild them, run
-   `python powerbi/scripts/build_dataset.py`.
-2. **Parameter.** In Power Query, create a text parameter `DataFolder` with the absolute path of
-   `powerbi\dataset\model`. Power Query does not resolve relative paths.
-3. **Queries.** Add one blank query per section of [`model/power-query.m`](model/power-query.m),
-   named as the section title, and paste the section. Check in the editor that every `*_usd` and
-   `settled_invoice_pct` column shows the Fixed decimal (`$`) type.
-4. **Model.** Turn off Auto date/time. Create the seven relationships in
-   [`model/model.md`](model/model.md), all many-to-one and single-direction. Hide the key columns.
-5. **Measures.** Add the `MEASURE` definitions from [`model/measures.dax`](model/measures.dax),
-   for example through DAX query view's *update model* action. Set formats: currency with 2
-   decimals, percentages with 2 decimals.
-6. **Verify.** Run `measures.dax` in DAX query view. Compare the first result with
-   `dataset/expected_kpis.json` and the README table above; every control in the second result
-   must be TRUE. Record the outcome in this README.
-7. **Report.** Build the three pages above. Save as a Power BI project (`.pbip`) into
-   `powerbi/` with short names (`RK.Report`, `RK.SemanticModel`). The default `.gitignore`
-   written by Power BI Desktop excludes the local data cache (`.pbi/cache.abf`), so no imported
-   data is committed through the model.
-8. **Screenshots.** Capture each page from the working report into `powerbi/screenshots/`.
+A comparison found no semantic change to any measure, column, Power Query partition, or report
+definition. Because the files are rewritten, a project saved from Desktop no longer matches
+`build_pbip.py --check`. Port such edits back into the generator rather than committing the
+saved files.
 
 ## Limitations
 
-- Refresh is a local Power BI Desktop action. There is no Power BI Service publication,
-  gateway, scheduled refresh, or public link; refreshing local files from the Service would
-  need an on-premises data gateway.
-- Two snapshots of a small synthetic ledger: the demonstration is about correctness and
+- **Local refresh only.** Nothing is published to the Power BI Service: no gateway, scheduled
+  refresh, or public link.
+- **Absolute data path.** `DataFolder` must be an absolute path (Power Query does not resolve
+  relative ones); the default assumes `C:\dev\ReconcileKit`.
+- **Tested on one Desktop version.** Opened, saved, reopened, and validated with Power BI Desktop
+  2.159 (October 2026) only.
+- **Not shown, because `rk_v1` does not provide it.** There is no review-event timeline (only
+  the latest review per exception is exposed) and no field-level validation detail (validation
+  is shown by rule code). There is no drill-through page.
+- **How the screenshots were taken.** They were captured from the Power BI Desktop window with
+  the Windows `PrintWindow` API and cropped to the report canvas; they are not from the Power BI
+  Service.
+- **Scale.** Two small synthetic snapshots: the demonstration is about correctness and
   controls, not scale or performance.
-- Inherited from ReconcileKit: USD only, positive amounts, exact references only; quarantined
-  rows carry no amount; reviewer labels are self-reported.
-- The DuckDB file is not connected directly. Power BI has no native DuckDB connector, and the
-  ODBC route needs a custom connector and lowered extension security; the views are exported to
-  Parquet instead.
+- **Inherited from ReconcileKit.** USD only, positive amounts, exact references only;
+  quarantined rows carry no amount; reviewer labels are self-reported.
