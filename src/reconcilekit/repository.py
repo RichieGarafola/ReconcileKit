@@ -217,8 +217,14 @@ def _insert_many(con: duckdb.DuckDBPyConnection, table: str, rows: list[tuple]) 
         con.executemany(f"INSERT INTO {table} VALUES ({placeholders})", rows)
 
 
-def save_run(db_path: str | Path, run: ReconciliationRun) -> SaveOutcome:
-    """Persist a run atomically, or reuse the stored run with the same fingerprint."""
+def save_run(
+    db_path: str | Path, run: ReconciliationRun, created_at_utc: datetime | None = None
+) -> SaveOutcome:
+    """Persist a run atomically, or reuse the stored run with the same fingerprint.
+
+    ``created_at_utc`` records when the run was stored (default: now). It is metadata only:
+    it is not part of the fingerprint or run ID. Pass it to build reproducible artifacts.
+    """
     with connect(db_path) as con:
         con.begin()
         try:
@@ -228,7 +234,7 @@ def save_run(db_path: str | Path, run: ReconciliationRun) -> SaveOutcome:
             if existing:
                 con.rollback()
                 return SaveOutcome(existing[0], created=False)
-            _write_run(con, run)
+            _write_run(con, run, created_at_utc or utc_now())
             con.commit()
         except duckdb.ConstraintException:
             con.rollback()
@@ -246,7 +252,9 @@ def save_run(db_path: str | Path, run: ReconciliationRun) -> SaveOutcome:
     return SaveOutcome(run.run_id, created=True)
 
 
-def _write_run(con: duckdb.DuckDBPyConnection, run: ReconciliationRun) -> None:
+def _write_run(
+    con: duckdb.DuckDBPyConnection, run: ReconciliationRun, created_at: datetime
+) -> None:
     s = run.summary
     rid = run.run_id
     con.execute(
@@ -254,7 +262,7 @@ def _write_run(con: duckdb.DuckDBPyConnection, run: ReconciliationRun) -> None:
         [
             rid,
             run.fingerprint,
-            utc_now(),
+            created_at,
             run.as_of,
             run.engine_version,
             run.rule_version,
