@@ -1,0 +1,102 @@
+/// Reconciliation bridge lines per run; signed amounts drive the waterfall.
+table 'Bridge Step'
+
+	/// Signed bridge line (waterfall value)
+	measure 'Bridge Amount' =
+			IF ( [Runs In Context] = 1, SUM ( 'Bridge Step'[signed_usd] ) )
+		formatString: \$#,0.00;-\$#,0.00;\$#,0.00
+		displayFolder: Bridge
+
+	column run_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: run_id
+
+		annotation SummarizationSetBy = User
+
+	column step_order
+		dataType: int64
+		formatString: 0
+		isHidden
+		summarizeBy: none
+		sourceColumn: step_order
+
+		annotation SummarizationSetBy = User
+
+	column step_code
+		dataType: string
+		summarizeBy: none
+		sourceColumn: step_code
+
+		annotation SummarizationSetBy = User
+
+	column step_label
+		dataType: string
+		summarizeBy: none
+		sourceColumn: step_label
+		sortByColumn: step_order
+
+		annotation SummarizationSetBy = User
+
+	column step_kind
+		dataType: string
+		summarizeBy: none
+		sourceColumn: step_kind
+
+		annotation SummarizationSetBy = User
+
+	column amount_cents
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: amount_cents
+
+		annotation SummarizationSetBy = User
+
+	column amount_usd
+		dataType: decimal
+		formatString: \$#,0.00;-\$#,0.00;\$#,0.00
+		summarizeBy: none
+		sourceColumn: amount_usd
+
+		annotation SummarizationSetBy = User
+
+	column signed_cents
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: signed_cents
+
+		annotation SummarizationSetBy = User
+
+	column signed_usd
+		dataType: decimal
+		formatString: \$#,0.00;-\$#,0.00;\$#,0.00
+		summarizeBy: none
+		sourceColumn: signed_usd
+
+		annotation SummarizationSetBy = User
+
+	partition 'Bridge Step' = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\bridge_step.parquet")),
+				    Typed = Table.TransformColumnTypes(
+				        Source,
+				        {
+				            {"run_id", type text},
+				            {"step_order", Int64.Type},
+				            {"step_code", type text},
+				            {"step_label", type text},
+				            {"step_kind", type text},
+				            {"amount_cents", Int64.Type},
+				            {"amount_usd", Currency.Type},
+				            {"signed_cents", Int64.Type},
+				            {"signed_usd", Currency.Type}
+				        }
+				    )
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

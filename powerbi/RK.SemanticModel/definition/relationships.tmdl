@@ -1,0 +1,27 @@
+relationship rel_01_openinvoice_run_id
+	fromColumn: 'Open Invoice'.run_id
+	toColumn: Run.run_id
+
+relationship rel_02_paymentexception_run_id
+	fromColumn: 'Payment Exception'.run_id
+	toColumn: Run.run_id
+
+relationship rel_03_exception_run_id
+	fromColumn: Exception.run_id
+	toColumn: Run.run_id
+
+relationship rel_04_bridgestep_run_id
+	fromColumn: 'Bridge Step'.run_id
+	toColumn: Run.run_id
+
+relationship rel_05_openinvoice_customer_id
+	fromColumn: 'Open Invoice'.customer_id
+	toColumn: Customer.customer_id
+
+relationship rel_06_paymentexception_customer_id
+	fromColumn: 'Payment Exception'.customer_id
+	toColumn: Customer.customer_id
+
+relationship rel_07_exception_customer_id
+	fromColumn: Exception.customer_id
+	toColumn: Customer.customer_id

@@ -1,0 +1,25 @@
+/// Customer IDs that appear in the fact tables.
+table Customer
+
+	column customer_id
+		dataType: string
+		summarizeBy: none
+		sourceColumn: customer_id
+
+		annotation SummarizationSetBy = User
+
+	partition Customer = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(DataFolder & "\customer.parquet")),
+				    Typed = Table.TransformColumnTypes(
+				        Source,
+				        {
+				            {"customer_id", type text}
+				        }
+				    )
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table
