@@ -83,7 +83,7 @@ def test_model_tables_and_measures_match_the_catalog():
     catalog = {(t, n) for t, n, _ in pbip.parse_measures(dax)}
     model = {(t, m) for t, o in objects.items() for m in o["measures"]}
     assert model == catalog
-    assert len(model) == 28
+    assert len(model) == 31
 
 
 def test_money_columns_are_fixed_decimal_and_cents_are_whole_numbers():

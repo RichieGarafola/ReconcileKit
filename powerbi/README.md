@@ -73,7 +73,9 @@ the reference as received and the engine's explanation.
 
 **3. Data Quality and Auditability**: quarantined rows, validation exceptions by rule, five
 model-to-engine controls, the full reconciliation bridge, the latest review on each reviewed
-exception, and traceability (run ID, storage time, engine and rule version, input file SHA-256).
+exception (notes wrap in full), and run provenance: storage time, engine and rule version, and
+the first 16 hex digits of each input file's SHA-256. The run ID is in the banner, and the full
+hashes are in the model and in `validation/desktop-validation.md`.
 
 ## Results
 
@@ -99,7 +101,7 @@ Six tables. `Run` carries the engine totals; `Open Invoice`, `Payment Exception`
 `EX-0001` repeat in every run. `Customer` and `Bridge Step` are derived. All seven relationships
 are many-to-one, single-direction, from `Run` and `Customer`, with no fact-to-fact relationships.
 Money columns are **Fixed decimal** (confirmed in the engine); cents are whole numbers; implicit
-measures are disabled. The model has 28 measures, defined in
+measures are disabled. The model has 31 measures, defined in
 [`model/measures.dax`](model/measures.dax) with descriptions and expected values in
 [`model/model.md`](model/model.md).
 

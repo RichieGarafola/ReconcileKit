@@ -122,6 +122,9 @@ yet** (see the README).
 | `Controls Status` | "All 5 controls pass", or "n of 5 controls pass" | `Controls Passed` | one run | All 5 controls pass | All 5 controls pass | "Select one snapshot" | — |
 | `Selected Snapshot` | Label of the selected snapshot | `Run[snapshot_label]` | one run | 2026-03 baseline | 2026-04 follow-up | "Select one snapshot" | — |
 | `Run Banner` | Run ID, as-of date, completeness, quarantined rows, arithmetic status | `Run` | one run | text | text | prompt to select a snapshot | — |
+| `Run Provenance` | Storage time, engine version, and rule version of the run | `Run[created_at_utc]`, `Run[engine_version]`, `Run[rule_version]` | one run | Stored 2026-04-01 08:00 UTC · engine 0.1.0 · rules-v1 | Stored 2026-05-01 08:00 UTC · engine 0.1.0 · rules-v1 | "Select one snapshot" | — |
+| `Invoice File Hash` | First 16 hex digits of the invoice file SHA-256, for display | `Run[invoice_sha256]` | one run | c9cb41eca9910362… | 654bcc10a4ba49ba… | BLANK unless one run | — |
+| `Payment File Hash` | First 16 hex digits of the payment file SHA-256, for display | `Run[payment_sha256]` | one run | b2715151c1218823… | 42857510ec53ce92… | BLANK unless one run | — |
 | `Bridge Amount` | Signed bridge line (waterfall value) | `Bridge Step[signed_usd]` | one run; step | O 1,575.50 · X −50.00 · U −1,660.50 · M −1,000.00 · B −200.00 | O 1,840.00 · X −110.00 · U −1,325.00 · M 0.00 · B 0.00 | BLANK unless one run | guarded |
 
 `Never Reviewed`: 19 − 5 reviewed = 14 (March); 14 − 2 = 12 (April).

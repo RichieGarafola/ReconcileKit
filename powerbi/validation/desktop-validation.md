@@ -8,10 +8,10 @@ through ADOMD.NET; `model/measures.dax` was run unmodified.
 
 Inputs (SHA-256; tests/test_powerbi_pbip.py flags this report as stale if they change):
 
-- `model/measures.dax`: `cc9b0994f6ac57c27578758747d3ec0f79e047536aec007976fbdf01da8cf17f`
+- `model/measures.dax`: `e8b5ea1cbe070b7bcfa9065604a09a461ab2f791ce9880f323f16d2c7b8348a1`
 - `dataset/expected_kpis.json`: `1f223ea7fc2cc62045ba8bf1e1c2d743d3ec0dfec42ff3b99137cd79e6c17794`
 - `dataset/model/*.parquet`: `0876f1fc0d48e04378ecb3b1304bb5ab2a5fce7f26b34e4363578803c18f30af`
-- `RK.SemanticModel/definition/**/*.tmdl`: `3353d8f6993dbde8b8e8bbe0d9b4a6472eb2b26c7f4a7cbc1f56ab9ae46ae6f4`
+- `RK.SemanticModel/definition/**/*.tmdl`: `3cca09ac4c038f1ec0a8bb2a1baf7ee0ce4a07e91e2b13193f4ac5dae61955ec`
 
 **Result: 76 of 76 checks passed.**
 

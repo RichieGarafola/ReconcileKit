@@ -5,115 +5,46 @@
     "x": 856,
     "y": 502,
     "z": 12000,
-    "height": 202,
+    "height": 102,
     "width": 400,
     "tabOrder": 12000
   },
   "visual": {
-    "visualType": "tableEx",
+    "visualType": "card",
     "query": {
       "queryState": {
         "Values": {
           "projections": [
             {
               "field": {
-                "Column": {
+                "Measure": {
                   "Expression": {
                     "SourceRef": {
                       "Entity": "Run"
                     }
                   },
-                  "Property": "run_id"
+                  "Property": "Run Provenance"
                 }
               },
-              "queryRef": "Run.run_id",
-              "nativeQueryRef": "run_id",
-              "displayName": "Run"
-            },
-            {
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Run"
-                    }
-                  },
-                  "Property": "created_at_utc"
-                }
-              },
-              "queryRef": "Run.created_at_utc",
-              "nativeQueryRef": "created_at_utc",
-              "displayName": "Stored (UTC)"
-            },
-            {
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Run"
-                    }
-                  },
-                  "Property": "engine_version"
-                }
-              },
-              "queryRef": "Run.engine_version",
-              "nativeQueryRef": "engine_version",
-              "displayName": "Engine"
-            },
-            {
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Run"
-                    }
-                  },
-                  "Property": "rule_version"
-                }
-              },
-              "queryRef": "Run.rule_version",
-              "nativeQueryRef": "rule_version",
-              "displayName": "Rules"
-            },
-            {
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Run"
-                    }
-                  },
-                  "Property": "invoice_sha256"
-                }
-              },
-              "queryRef": "Run.invoice_sha256",
-              "nativeQueryRef": "invoice_sha256",
-              "displayName": "Invoice file SHA-256"
-            },
-            {
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Run"
-                    }
-                  },
-                  "Property": "payment_sha256"
-                }
-              },
-              "queryRef": "Run.payment_sha256",
-              "nativeQueryRef": "payment_sha256",
-              "displayName": "Payment file SHA-256"
+              "queryRef": "Run.Run Provenance",
+              "nativeQueryRef": "Run Provenance"
             }
           ]
         }
       }
     },
     "objects": {
-      "columnHeaders": [
+      "labels": [
         {
           "properties": {
-            "fontColor": {
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "11D"
+                }
+              }
+            },
+            "color": {
               "solid": {
                 "color": {
                   "expr": {
@@ -124,37 +55,27 @@
                 }
               }
             },
-            "backColor": {
-              "solid": {
-                "color": {
-                  "expr": {
-                    "Literal": {
-                      "Value": "'#EDF2F7'"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      ],
-      "grid": [
-        {
-          "properties": {
-            "gridHorizontal": {
+            "labelDisplayUnits": {
               "expr": {
                 "Literal": {
-                  "Value": "true"
+                  "Value": "1D"
+                }
+              }
+            },
+            "labelPrecision": {
+              "expr": {
+                "Literal": {
+                  "Value": "0D"
                 }
               }
             }
           }
         }
       ],
-      "total": [
+      "categoryLabels": [
         {
           "properties": {
-            "totals": {
+            "show": {
               "expr": {
                 "Literal": {
                   "Value": "false"
@@ -179,14 +100,14 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Traceability'"
+                  "Value": "'Run provenance'"
                 }
               }
             },
             "fontSize": {
               "expr": {
                 "Literal": {
-                  "Value": "11D"
+                  "Value": "10D"
                 }
               }
             },

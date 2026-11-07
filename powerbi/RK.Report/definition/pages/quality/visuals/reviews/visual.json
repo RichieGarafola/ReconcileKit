@@ -68,27 +68,12 @@
                       "Entity": "Exception"
                     }
                   },
-                  "Property": "review_event_count"
-                }
-              },
-              "queryRef": "Exception.review_event_count",
-              "nativeQueryRef": "review_event_count",
-              "displayName": "Events"
-            },
-            {
-              "field": {
-                "Column": {
-                  "Expression": {
-                    "SourceRef": {
-                      "Entity": "Exception"
-                    }
-                  },
                   "Property": "latest_reviewed_at_utc"
                 }
               },
               "queryRef": "Exception.latest_reviewed_at_utc",
               "nativeQueryRef": "latest_reviewed_at_utc",
-              "displayName": "Latest review (UTC)"
+              "displayName": "Reviewed (UTC)"
             },
             {
               "field": {
@@ -166,6 +151,13 @@
                   }
                 }
               }
+            },
+            "wordWrap": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
             }
           }
         }
@@ -193,6 +185,105 @@
                 }
               }
             }
+          }
+        }
+      ],
+      "values": [
+        {
+          "properties": {
+            "wordWrap": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "columnWidth": [
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "76D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Exception.exception_id"
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "236D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Exception.rule_code"
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "124D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Exception.current_disposition"
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "126D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Exception.latest_reviewed_at_utc"
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "86D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Exception.latest_reviewer"
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "152D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Exception.latest_note"
           }
         }
       ]

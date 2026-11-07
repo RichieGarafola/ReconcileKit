@@ -516,18 +516,33 @@ def bar(
 
 
 def table(
-    fields: list[tuple[dict, str | None]], title: str, sort: tuple[dict, str] | None = None
+    fields: list[tuple[dict, str | None]],
+    title: str,
+    sort: tuple[dict, str] | None = None,
+    widths: list[int] | None = None,
 ) -> dict:
+    """Table visual. ``widths`` fixes each column's width (same order as ``fields``) and turns
+    on word wrap, so long text (explanations, notes) wraps instead of being cut off."""
+    projections = [proj(f, d) for f, d in fields]
+    objects = {
+        "columnHeaders": [
+            {"properties": {"fontColor": color("#1F2A37"), "backColor": color("#EDF2F7")}}
+        ],
+        "grid": [{"properties": {"gridHorizontal": lit(True)}}],
+        "total": [{"properties": {"totals": lit(False)}}],
+    }
+    if widths:
+        assert len(widths) == len(projections)
+        objects["values"] = [{"properties": {"wordWrap": lit(True)}}]
+        objects["columnHeaders"][0]["properties"]["wordWrap"] = lit(True)
+        objects["columnWidth"] = [
+            {"properties": {"value": lit(w)}, "selector": {"metadata": p["queryRef"]}}
+            for p, w in zip(projections, widths, strict=True)
+        ]
     v = {
         "visualType": "tableEx",
-        "query": {"queryState": {"Values": {"projections": [proj(f, d) for f, d in fields]}}},
-        "objects": {
-            "columnHeaders": [
-                {"properties": {"fontColor": color("#1F2A37"), "backColor": color("#EDF2F7")}}
-            ],
-            "grid": [{"properties": {"gridHorizontal": lit(True)}}],
-            "total": [{"properties": {"totals": lit(False)}}],
-        },
+        "query": {"queryState": {"Values": {"projections": projections}}},
+        "objects": objects,
         "visualContainerObjects": title_objects(title),
         "drillFilterOtherVisuals": True,
     }
@@ -773,6 +788,7 @@ def exceptions() -> Page:
             ],
             "Payment exceptions to investigate",
             (column("Payment Exception", "payment_amount_usd"), "Descending"),
+            widths=[74, 72, 100, 92, 82, 104, 244, 124, 316],
         ),
     )
     return p
@@ -810,7 +826,7 @@ def quality() -> Page:
         (measure("Run", "Arithmetic Status"), "Engine invariants"),
         (measure("Run", "Check Outstanding Ties"), "Open items = O"),
         (measure("Run", "Check Payment Exceptions Tie"), "Exceptions = U+M+B"),
-        (measure("Run", "Check Bridge"), "Net = O−X−U−M−B"),
+        (measure("Run", "Check Bridge"), "Net = explained"),
         (measure("Run", "Check Bridge Steps"), "Bridge steps tie"),
         (measure("Run", "Check Settled % Matches SQL"), "DAX % = SQL %"),
     ]
@@ -858,13 +874,13 @@ def quality() -> Page:
                 (column("Exception", "exception_id"), "Exception"),
                 (column("Exception", "rule_code"), "Rule"),
                 (column("Exception", "current_disposition"), "Disposition"),
-                (column("Exception", "review_event_count"), "Events"),
-                (column("Exception", "latest_reviewed_at_utc"), "Latest review (UTC)"),
+                (column("Exception", "latest_reviewed_at_utc"), "Reviewed (UTC)"),
                 (column("Exception", "latest_reviewer"), "Reviewer"),
                 (column("Exception", "latest_note"), "Latest note"),
             ],
             "Reviewed exceptions (latest event per exception; full history is not in rk_v1)",
             (column("Exception", "exception_id"), "Ascending"),
+            widths=[76, 236, 124, 126, 86, 152],
         ),
         [
             categorical_filter(
@@ -880,17 +896,23 @@ def quality() -> Page:
         856,
         502,
         400,
-        202,
+        102,
+        # The run ID is in the banner; one line keeps the rest readable at this size.
+        card(measure("Run", "Run Provenance"), "Run provenance", 11),
+    )
+    p.add(
+        "traceFiles",
+        856,
+        610,
+        400,
+        94,
         table(
             [
-                (column("Run", "run_id"), "Run"),
-                (column("Run", "created_at_utc"), "Stored (UTC)"),
-                (column("Run", "engine_version"), "Engine"),
-                (column("Run", "rule_version"), "Rules"),
-                (column("Run", "invoice_sha256"), "Invoice file SHA-256"),
-                (column("Run", "payment_sha256"), "Payment file SHA-256"),
+                (measure("Run", "Invoice File Hash"), "Invoice file"),
+                (measure("Run", "Payment File Hash"), "Payment file"),
             ],
-            "Traceability",
+            "Input files (SHA-256, first 16 hex digits)",
+            widths=[180, 180],
         ),
     )
     return p

@@ -153,6 +153,27 @@ table Run
 			)
 		displayFolder: KPIs
 
+	/// Storage time, engine version, and rule version of the run
+	measure 'Run Provenance' =
+			IF (
+			    [Runs In Context] = 1,
+			    "Stored " & FORMAT ( SELECTEDVALUE ( 'Run'[created_at_utc] ), "yyyy-mm-dd hh:nn" )
+			        & " UTC  ·  engine " & SELECTEDVALUE ( 'Run'[engine_version] )
+			        & "  ·  " & SELECTEDVALUE ( 'Run'[rule_version] ),
+			    "Select one snapshot"
+			)
+		displayFolder: KPIs
+
+	/// First 16 hex digits of the invoice file SHA-256, for display
+	measure 'Invoice File Hash' =
+			IF ( [Runs In Context] = 1, LEFT ( SELECTEDVALUE ( 'Run'[invoice_sha256] ), 16 ) & "…" )
+		displayFolder: KPIs
+
+	/// First 16 hex digits of the payment file SHA-256, for display
+	measure 'Payment File Hash' =
+			IF ( [Runs In Context] = 1, LEFT ( SELECTEDVALUE ( 'Run'[payment_sha256] ), 16 ) & "…" )
+		displayFolder: KPIs
+
 	column run_id
 		dataType: string
 		summarizeBy: none
