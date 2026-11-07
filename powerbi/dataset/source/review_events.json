@@ -1,0 +1,77 @@
+{
+  "_comment": "Synthetic review activity, applied in this order with ReconcileKit's add_review_event API. Each event targets one exception by snapshot and business subject; the build fails if a selector matches zero or several exceptions. Reviewer labels are invented role names. Reviews belong to one run: a later snapshot is a new run with new exception IDs and starts with no reviews.",
+  "events": [
+    {
+      "snapshot": "2026-03-31",
+      "select": {"payment_id": "PAY-5009", "rule_code": "PAYMENT_REFERENCE_NOT_FOUND"},
+      "event_id": "demo-evt-0001",
+      "created_at_utc": "2026-04-01T14:00:00",
+      "reviewer": "ar.analyst.1",
+      "disposition": "INVESTIGATING",
+      "note": "Reference differs from INV-1005 only by letter case; confirming with the customer."
+    },
+    {
+      "snapshot": "2026-03-31",
+      "select": {"invoice_id": "INV-1009", "rule_code": "DUPLICATE_INVOICE_IDENTITY"},
+      "event_id": "demo-evt-0002",
+      "created_at_utc": "2026-04-01T15:10:00",
+      "reviewer": "ar.analyst.2",
+      "disposition": "RESOLVED_EXTERNALLY",
+      "note": "Duplicate INV-1009 row removed from the invoice register export."
+    },
+    {
+      "snapshot": "2026-03-31",
+      "select": {"payment_id": "PAY-5012", "rule_code": "AMBIGUOUS_INVOICE_REFERENCE"},
+      "event_id": "demo-evt-0003",
+      "created_at_utc": "2026-04-02T09:00:00",
+      "reviewer": "ar.analyst.2",
+      "disposition": "ACKNOWLEDGED",
+      "note": "Applies once the duplicate INV-1009 row is removed at source."
+    },
+    {
+      "snapshot": "2026-03-31",
+      "select": {"payment_id": "PAY-5011", "rule_code": "CUSTOMER_REFERENCE_CONFLICT"},
+      "event_id": "demo-evt-0004",
+      "created_at_utc": "2026-04-02T11:45:00",
+      "reviewer": "ar.analyst.1",
+      "disposition": "INVESTIGATING",
+      "note": "CUST-B paid an invoice issued to CUST-A; remittance advice requested."
+    },
+    {
+      "snapshot": "2026-03-31",
+      "select": {"invoice_id": "INV-1005", "rule_code": "INVOICE_UNPAID"},
+      "event_id": "demo-evt-0005",
+      "created_at_utc": "2026-04-02T16:20:00",
+      "reviewer": "ar.analyst.1",
+      "disposition": "ACKNOWLEDGED",
+      "note": "Matching payment located (PAY-5009); see the related payment exception."
+    },
+    {
+      "snapshot": "2026-03-31",
+      "select": {"payment_id": "PAY-5009", "rule_code": "PAYMENT_REFERENCE_NOT_FOUND"},
+      "event_id": "demo-evt-0006",
+      "created_at_utc": "2026-04-03T10:30:00",
+      "reviewer": "ar.analyst.1",
+      "disposition": "RESOLVED_EXTERNALLY",
+      "note": "Customer confirmed INV-1005; reference corrected in the payment ledger for the next export."
+    },
+    {
+      "snapshot": "2026-04-30",
+      "select": {"payment_id": "PAY-5020", "rule_code": "PAYMENT_REFERENCE_NOT_FOUND"},
+      "event_id": "demo-evt-0007",
+      "created_at_utc": "2026-05-01T09:15:00",
+      "reviewer": "ar.analyst.1",
+      "disposition": "INVESTIGATING",
+      "note": "INV-1061 may be a transposition of INV-1016 (same customer and amount); confirming."
+    },
+    {
+      "snapshot": "2026-04-30",
+      "select": {"payment_id": "PAY-5011", "rule_code": "CUSTOMER_REFERENCE_CONFLICT"},
+      "event_id": "demo-evt-0008",
+      "created_at_utc": "2026-05-01T09:40:00",
+      "reviewer": "ar.analyst.2",
+      "disposition": "INVESTIGATING",
+      "note": "Same item as last month's review; still waiting for remittance advice."
+    }
+  ]
+}

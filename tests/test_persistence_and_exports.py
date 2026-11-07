@@ -347,3 +347,20 @@ def test_cli_rejects_bad_as_of(tmp_path):
     with pytest.raises(SystemExit) as exc:
         main(["reconcile", "--invoices", "a", "--payments", "b", "--as-of", "03/31/2026"])
     assert exc.value.code == 2
+
+
+def test_save_run_accepts_an_explicit_creation_time(tmp_path):
+    """created_at_utc is metadata only: it is stored, but the run ID does not depend on it."""
+    from datetime import datetime
+
+    from conftest import inv, pay, run_rows
+    from reconcilekit.repository import connect, save_run
+
+    run = run_rows([inv()], [pay()])
+    stamp = datetime(2026, 4, 1, 8, 0, 0)
+    a, b = tmp_path / "a.duckdb", tmp_path / "b.duckdb"
+    assert save_run(a, run, created_at_utc=stamp).run_id == save_run(b, run).run_id == run.run_id
+    with connect(a) as con:
+        assert con.execute("SELECT created_at_utc FROM runs").fetchone() == (stamp,)
+    with connect(b) as con:
+        assert con.execute("SELECT created_at_utc FROM runs").fetchone()[0] != stamp

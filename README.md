@@ -188,6 +188,16 @@ More questions (aging, unresolved exceptions by category, listing runs) are in
 [`examples/sql/`](examples/sql/). The full column contract, financial definitions, and
 run-selection guidance are in [SQL reporting](docs/sql-reporting.md).
 
+### Power BI demonstration
+
+[`powerbi/`](powerbi/) follows two synthetic month-end snapshots through to a Power BI
+semantic model: a deterministic pipeline (snapshot CSVs → reconciliation → scripted reviews →
+`rk_v1` → Parquet → model files), a model design with run-scoped composite keys and Fixed
+decimal money, and a DAX measure catalog with hand-calculated expected values. The data
+pipeline and model files are built and tested in CI. **The report itself has not been built
+yet** (it needs Power BI Desktop); [`powerbi/README.md`](powerbi/README.md) states exactly what
+is verified and what is not.
+
 ## Features
 
 - **Exact money.** Amounts are validated as text and converted to integer cents with
@@ -367,6 +377,8 @@ Known limitations:
 
 - [SQL reporting](docs/sql-reporting.md): `rk_v1` views, column contract, financial
   definitions, connecting, run selection, Parquet
+- [Power BI demonstration](powerbi/README.md): synthetic snapshots, data pipeline, semantic
+  model, DAX catalog, verification status
 - [Reference](docs/reference.md): Streamlit UI, input contract, matching and duplicate rules,
   invariants, review semantics, persistence, export package, module map
 - [Design decisions](docs/design-decisions.md)
