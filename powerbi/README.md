@@ -171,19 +171,31 @@ pytest tests/test_powerbi_demo.py tests/test_powerbi_pbip.py
 sources and regenerate.
 
 **Saving from Desktop works.** The generated project was saved once through Power BI Desktop's
-normal Save, in an isolated copy, then reopened, refreshed, and revalidated (76/76). Desktop
-rewrote every file in its own canonical form:
+normal Save, in an isolated copy, then reopened, refreshed, and revalidated (76/76). A later
+save of the project with the same Desktop build (2.159.1231.0) was inspected file by file.
+Desktop rewrites the project in its own canonical form:
 
-- CRLF line endings;
-- random `lineageTag` GUIDs;
-- compatibility level 1600 → 1606;
-- newer PBIR schema stamps and single-line measure formatting;
-- housekeeping files such as `.platform`, `cultures/en-US.tmdl`, and `diagramLayout.json`.
+- **Line endings:** the inspected save wrote LF. An earlier note recorded CRLF; treat line
+  endings as unpredictable. `build_pbip.py --check` ignores the CRLF/LF difference.
+- **Model metadata:** random `lineageTag` GUIDs on every table, column, and measure;
+  compatibility level 1600 → 1606; `definition.pbism` version 4.0 → 4.2; measures reformatted
+  onto a single line; columns' properties reordered; `UnderlyingDateTimeDataType` and
+  `PBI_ProTooling` annotations; a `ref cultureInfo en-US` entry.
+- **Report metadata:** newer PBIR schema stamps (visual container 2.13.0 → 2.14.0, report
+  3.3.0 → 3.4.0, page 2.1.0 → 2.3.1); `"active": true` on visual fields; renamed internal query
+  aliases; `useEnhancedTooltips: false` in `report.json`; persisted table column widths; and
+  filter-pane cards for fields already on a visual, with no filter condition.
+- **Formatting:** `$schema` lines removed from `RK.pbip`, `definition.pbir`, and
+  `definition.pbism`; the final newline removed from rewritten files.
+- **New housekeeping files:** `RK.Report/.platform`, `RK.SemanticModel/.platform`,
+  `RK.SemanticModel/.pbi/editorSettings.json`, `definition/cultures/en-US.tmdl` (auto-generated
+  Q&A synonyms), and `diagramLayout.json`. Desktop's cache and local settings under `.pbi/` are
+  git-ignored.
 
-A comparison found no semantic change to any measure, column, Power Query partition, or report
-definition. Because the files are rewritten, a project saved from Desktop no longer matches
-`build_pbip.py --check`. Port such edits back into the generator rather than committing the
-saved files.
+A comparison found no semantic change to any measure, column, relationship, Power Query
+partition, or report definition. Because the files are rewritten, a project saved from Desktop
+no longer matches `build_pbip.py --check`, and the Desktop validation hash test fails. Port such
+edits back into the generator rather than committing the saved files.
 
 ## Limitations
 
